@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { View, StyleSheet, Alert } from 'react-native';
 import { TextInput, Button, Text } from 'react-native-paper';
 import { useRouter } from 'expo-router';
@@ -11,20 +11,36 @@ export default function LoginScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [checkingSession, setCheckingSession] = useState(true);
   const router = useRouter();
+
+  useEffect(() => {
+    async function checkSession() {
+      const token = await SecureStore.getItemAsync('token');
+      if (token) {
+        router.replace('/home');
+      } else {
+        setCheckingSession(false);
+      }
+    }
+    checkSession();
+  }, []);
 
   async function handleLogin() {
     setLoading(true);
     try {
       const data = await login(email, password);
       await SecureStore.setItemAsync('token', data.token);
-      Alert.alert('Sucesso', 'Login realizado!');
-      // depois: router.replace('/home')
+      router.replace('/home');
     } catch (error) {
       Alert.alert('Erro', 'Email ou senha inválidos');
     } finally {
       setLoading(false);
     }
+  }
+
+  if (checkingSession) {
+    return <View style={styles.screen} />;
   }
 
   return (

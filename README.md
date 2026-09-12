@@ -1,56 +1,81 @@
-# Welcome to your Expo app 👋
+# WalletAI — App (Frontend)
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+Aplicativo mobile de gestão financeira pessoal com recursos de IA, desenvolvido em React Native com Expo como projeto universitário. Disponível para iOS e Android a partir de uma única base de código.
 
-## Get started
+## Tecnologias
 
-1. Install dependencies
+- **React Native + Expo** (Expo Router — navegação baseada em arquivos)
+- **React Native Paper** — biblioteca de componentes de UI (Material Design 3)
+- **expo-blur** — efeito de vidro (glassmorphism), base do estilo visual do app
+- **expo-secure-store** — armazenamento seguro do token de autenticação
 
-   ```bash
+## Design
+
+O app segue um estilo visual **"liquid glass"**, inspirado no design mais recente da Apple, com tema escuro e paleta verde/preto:
+
+- Fundo: `#000000`
+- Cor primária: `#1f8055`
+- Componentes com efeito de vidro (blur + transparência) através do componente reutilizável `GlassCard`
+
+## Pré-requisitos
+
+- Node.js instalado
+- App **Expo Go** instalado no celular (iOS ou Android)
+- Backend do WalletAI rodando (veja o repositório `walletai-backend`)
+
+## Configuração
+
+1. Clone o repositório e instale as dependências:
+   ```
    npm install
    ```
 
-2. Start the app
+2. Configure o endereço da API em `src/services/api.ts`, apontando para o IP local da máquina rodando o backend:
+   ```typescript
+   const API_URL = 'http://SEU_IP_LOCAL:3000';
+   ```
+   > Celular e computador precisam estar na mesma rede Wi-Fi.
 
-   ```bash
+3. Inicie o projeto:
+   ```
    npx expo start
    ```
+   Escaneie o QR code exibido no terminal com o app Expo Go.
 
-In the output, you'll find options to open the app in a
+## Estrutura do projeto
 
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
-
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
-
-## Get a fresh project
-
-When you're ready, run:
-
-```bash
-npm run reset-project
+```
+walletai/
+└── src/
+    ├── app/                # Telas (rotas por arquivo, via Expo Router)
+    │   ├── _layout.tsx     # Layout raiz (tema + navegação)
+    │   ├── index.tsx       # Tela de Login
+    │   ├── register.tsx    # Tela de Cadastro
+    │   └── home.tsx        # Tela principal (pós-login)
+    ├── components/
+    │   └── GlassCard.tsx   # Componente reutilizável do efeito de vidro
+    ├── constants/
+    │   └── colors.ts       # Paleta de cores do app
+    └── services/
+        └── api.ts          # Chamadas HTTP para o backend
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+## Funcionalidades implementadas
 
-### Other setup steps
+- [x] Cadastro de usuário
+- [x] Login com autenticação via JWT
+- [x] Persistência de sessão (login automático em sessões futuras)
+- [ ] Dashboard de gastos
+- [ ] Cadastro e listagem de transações
+- [ ] Categorização automática via IA
+- [ ] Chat com IA sobre os gastos
 
-- To set up ESLint for linting, run `npx expo lint`, or follow our guide on ["Using ESLint and Prettier"](https://docs.expo.dev/guides/using-eslint/)
-- If you'd like to set up unit testing, follow our guide on ["Unit Testing with Jest"](https://docs.expo.dev/develop/unit-testing/)
-- Learn more about the TypeScript setup in this template in our guide on ["Using TypeScript"](https://docs.expo.dev/guides/typescript/)
+## Gerando um build instalável (APK)
 
-## Learn more
-
-To learn more about developing your project with Expo, look at the following resources:
-
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
-
-## Join the community
-
-Join our community of developers creating universal apps.
-
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+Para gerar um arquivo `.apk` instalável diretamente em um Android, sem precisar do Expo Go:
+```
+npm install -g eas-cli
+eas login
+eas build:configure
+eas build -p android --profile preview
+```
