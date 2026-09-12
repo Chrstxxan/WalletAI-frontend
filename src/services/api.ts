@@ -58,3 +58,31 @@ export async function getTransactions() {
   if (!response.ok) throw new Error('Não foi possível buscar as transações');
   return response.json();
 }
+
+export async function getFinancialProfile() {
+  const response = await fetch(`${API_URL}/financial/profile`, {
+    method: 'GET',
+    headers: await getAuthHeaders(),
+  });
+  if (!response.ok) throw new Error('Não foi possível buscar o perfil financeiro');
+  return response.json();
+}
+
+export async function updateFinancialProfile(monthlyIncome: number, fixedExpenses: number, workingCapital: number, creditTypes: string[]) {
+  const response = await fetch(`${API_URL}/financial/profile`, {
+    method: 'PUT',
+    headers: await getAuthHeaders(),
+    body: JSON.stringify({ monthlyIncome, fixedExpenses, workingCapital, creditTypes }),
+  });
+  if (!response.ok) throw new Error('Não foi possível salvar o perfil financeiro');
+  return response.json();
+}
+
+export async function getDashboard() {
+  const response = await fetch(`${API_URL}/financial/dashboard`, {
+    method: 'GET',
+    headers: await getAuthHeaders(),
+  });
+  if (!response.ok) throw new Error('Não foi possível buscar o dashboard');
+  return response.json();
+}
