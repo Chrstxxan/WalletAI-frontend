@@ -2,26 +2,24 @@ import { useState } from 'react';
 import { View, StyleSheet, Alert } from 'react-native';
 import { TextInput, Button, Text } from 'react-native-paper';
 import { useRouter } from 'expo-router';
-import * as SecureStore from 'expo-secure-store';
-import { login } from '@/services/api';
+import { register } from '@/services/api';
 import { GlassCard } from '@/components/GlassCard';
 import { Colors } from '@/constants/colors';
 
-export default function LoginScreen() {
+export default function RegisterScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const router = useRouter();
 
-  async function handleLogin() {
+  async function handleRegister() {
     setLoading(true);
     try {
-      const data = await login(email, password);
-      await SecureStore.setItemAsync('token', data.token);
-      Alert.alert('Sucesso', 'Login realizado!');
-      // depois: router.replace('/home')
+      await register(email, password);
+      Alert.alert('Sucesso', 'Conta criada! Faça login.');
+      router.back();
     } catch (error) {
-      Alert.alert('Erro', 'Email ou senha inválidos');
+      Alert.alert('Erro', 'Não foi possível cadastrar (email já existe?)');
     } finally {
       setLoading(false);
     }
@@ -33,8 +31,8 @@ export default function LoginScreen() {
       <View style={[styles.blob, styles.blobBottom]} />
 
       <View style={styles.container}>
-        <Text variant="headlineLarge" style={styles.title}>WalletAI</Text>
-        <Text variant="bodyMedium" style={styles.subtitle}>Gestão financeira inteligente</Text>
+        <Text variant="headlineLarge" style={styles.title}>Criar conta</Text>
+        <Text variant="bodyMedium" style={styles.subtitle}>Comece a organizar suas finanças</Text>
 
         <GlassCard style={styles.card}>
           <TextInput
@@ -59,12 +57,8 @@ export default function LoginScreen() {
             textColor={Colors.textPrimary}
           />
 
-          <Button mode="contained" onPress={handleLogin} loading={loading} style={styles.button} buttonColor={Colors.primary}>
-            Entrar
-          </Button>
-
-          <Button mode="text" onPress={() => router.push('/register')} textColor={Colors.primaryLight}>
-            Não tem conta? Cadastre-se
+          <Button mode="contained" onPress={handleRegister} loading={loading} style={styles.button} buttonColor={Colors.primary}>
+            Cadastrar
           </Button>
         </GlassCard>
       </View>
