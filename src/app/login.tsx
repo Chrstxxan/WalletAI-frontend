@@ -1,32 +1,50 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { View, StyleSheet, Alert } from 'react-native';
 import { TextInput, Button, Text } from 'react-native-paper';
 import { useRouter } from 'expo-router';
-import { register } from '@/services/api';
+import * as SecureStore from 'expo-secure-store';
+import { login } from '@/services/api';
 import { GlassCard } from '@/components/GlassCard';
 import { Colors } from '@/constants/colors';
 
-export default function RegisterScreen() {
+export default function LoginScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [checkingSession, setCheckingSession] = useState(true);
   const router = useRouter();
 
-  async function handleRegister() {
+  useEffect(() => {
+    async function checkSession() {
+      const token = await SecureStore.getItemAsync('token');
+      if (token) {
+        router.replace('/home');
+      } else {
+        setCheckingSession(false);
+      }
+    }
+    checkSession();
+  }, []);
+
+  async function handleLogin() {
     setLoading(true);
     try {
-      await register(email, password);
-      Alert.alert('Sucesso', 'Conta criada! Faça login.');
-      router.back();
+      const data = await login(email, password);
+      await SecureStore.setItemAsync('token', data.token);
+      router.replace('/home');
     } catch (error) {
       if (error instanceof TypeError) {
         Alert.alert('Erro de conexão', 'Não foi possível conectar ao servidor. Verifique se o backend está rodando e se o celular está na mesma rede Wi-Fi.');
       } else {
-        Alert.alert('Erro', 'Não foi possível cadastrar (email já existe?)');
+        Alert.alert('Erro', 'Email ou senha inválidos');
       }
     } finally {
       setLoading(false);
     }
+  }
+
+  if (checkingSession) {
+    return <View style={styles.screen} />;
   }
 
   return (
@@ -35,8 +53,8 @@ export default function RegisterScreen() {
       <View style={[styles.blob, styles.blobBottom]} />
 
       <View style={styles.container}>
-        <Text variant="headlineLarge" style={styles.title}>Criar conta</Text>
-        <Text variant="bodyMedium" style={styles.subtitle}>Comece a organizar suas finanças</Text>
+        <Text variant="headlineLarge" style={styles.title}>WalletAI</Text>
+        <Text variant="bodyMedium" style={styles.subtitle}>Gestão financeira inteligente</Text>
 
         <GlassCard style={styles.card}>
           <TextInput
@@ -61,8 +79,16 @@ export default function RegisterScreen() {
             textColor={Colors.textPrimary}
           />
 
-          <Button mode="contained" onPress={handleRegister} loading={loading} style={styles.button} buttonColor={Colors.primary}>
-            Cadastrar
+          <Button mode="contained" onPress={handleLogin} loading={loading} style={styles.button} buttonColor={Colors.primary}>
+            Entrar
+          </Button>
+
+          <Button mode="text" onPress={() => router.push('/register')} textColor={Colors.primaryLight}>
+            Não tem conta? Cadastre-se
+          </Button>
+
+          <Button mode="text" onPress={() => router.push('/forgot-password')} textColor={Colors.textSecondary}>
+            Esqueceu a senha?
           </Button>
         </GlassCard>
       </View>

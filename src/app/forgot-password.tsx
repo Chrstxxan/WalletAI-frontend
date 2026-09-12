@@ -2,27 +2,32 @@ import { useState } from 'react';
 import { View, StyleSheet, Alert } from 'react-native';
 import { TextInput, Button, Text } from 'react-native-paper';
 import { useRouter } from 'expo-router';
-import { register } from '@/services/api';
+import { resetPassword } from '@/services/api';
 import { GlassCard } from '@/components/GlassCard';
 import { Colors } from '@/constants/colors';
 
-export default function RegisterScreen() {
+export default function ForgotPasswordScreen() {
   const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const router = useRouter();
 
-  async function handleRegister() {
+  async function handleReset() {
+    if (newPassword !== confirmPassword) {
+      Alert.alert('Erro', 'As senhas não coincidem');
+      return;
+    }
     setLoading(true);
     try {
-      await register(email, password);
-      Alert.alert('Sucesso', 'Conta criada! Faça login.');
+      await resetPassword(email, newPassword);
+      Alert.alert('Sucesso', 'Senha redefinida! Faça login com a nova senha.');
       router.back();
     } catch (error) {
       if (error instanceof TypeError) {
         Alert.alert('Erro de conexão', 'Não foi possível conectar ao servidor. Verifique se o backend está rodando e se o celular está na mesma rede Wi-Fi.');
       } else {
-        Alert.alert('Erro', 'Não foi possível cadastrar (email já existe?)');
+        Alert.alert('Erro', 'Email não encontrado');
       }
     } finally {
       setLoading(false);
@@ -35,8 +40,8 @@ export default function RegisterScreen() {
       <View style={[styles.blob, styles.blobBottom]} />
 
       <View style={styles.container}>
-        <Text variant="headlineLarge" style={styles.title}>Criar conta</Text>
-        <Text variant="bodyMedium" style={styles.subtitle}>Comece a organizar suas finanças</Text>
+        <Text variant="headlineLarge" style={styles.title}>Redefinir senha</Text>
+        <Text variant="bodyMedium" style={styles.subtitle}>Informe seu email e a nova senha</Text>
 
         <GlassCard style={styles.card}>
           <TextInput
@@ -51,9 +56,19 @@ export default function RegisterScreen() {
             textColor={Colors.textPrimary}
           />
           <TextInput
-            label="Senha"
-            value={password}
-            onChangeText={setPassword}
+            label="Nova senha"
+            value={newPassword}
+            onChangeText={setNewPassword}
+            secureTextEntry
+            mode="flat"
+            style={styles.input}
+            underlineColor="transparent"
+            textColor={Colors.textPrimary}
+          />
+          <TextInput
+            label="Confirmar nova senha"
+            value={confirmPassword}
+            onChangeText={setConfirmPassword}
             secureTextEntry
             mode="flat"
             style={styles.input}
@@ -61,8 +76,8 @@ export default function RegisterScreen() {
             textColor={Colors.textPrimary}
           />
 
-          <Button mode="contained" onPress={handleRegister} loading={loading} style={styles.button} buttonColor={Colors.primary}>
-            Cadastrar
+          <Button mode="contained" onPress={handleReset} loading={loading} style={styles.button} buttonColor={Colors.primary}>
+            Redefinir senha
           </Button>
         </GlassCard>
       </View>

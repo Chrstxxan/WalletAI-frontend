@@ -1,102 +1,93 @@
-import { useState, useEffect } from 'react';
-import { View, StyleSheet, Alert } from 'react-native';
-import { TextInput, Button, Text } from 'react-native-paper';
+import { useEffect, useRef } from 'react';
+import { View, StyleSheet, Animated, Easing, Image } from 'react-native';
 import { useRouter } from 'expo-router';
 import * as SecureStore from 'expo-secure-store';
-import { login } from '@/services/api';
-import { GlassCard } from '@/components/GlassCard';
 import { Colors } from '@/constants/colors';
 
-export default function LoginScreen() {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [checkingSession, setCheckingSession] = useState(true);
+export default function SplashScreen() {
+  const scale = useRef(new Animated.Value(0.5)).current;
+  const opacity = useRef(new Animated.Value(0)).current;
+  const glow = useRef(new Animated.Value(0.4)).current;
+  const translateY = useRef(new Animated.Value(0)).current;
   const router = useRouter();
 
   useEffect(() => {
-    async function checkSession() {
+    Animated.parallel([
+      Animated.timing(opacity, { toValue: 1, duration: 500, useNativeDriver: true }),
+      Animated.spring(scale, { toValue: 1, friction: 4, useNativeDriver: true }),
+    ]).start();
+
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(glow, { toValue: 1, duration: 800, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
+        Animated.timing(glow, { toValue: 0.4, duration: 800, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
+      ])
+    ).start();
+
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(translateY, { toValue: -10, duration: 1000, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
+        Animated.timing(translateY, { toValue: 0, duration: 1000, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
+      ])
+    ).start();
+
+    async function decidirDestino() {
       const token = await SecureStore.getItemAsync('token');
-      if (token) {
-        router.replace('/home');
-      } else {
-        setCheckingSession(false);
-      }
+      setTimeout(() => {
+        router.replace(token ? '/home' : '/login');
+      }, 2200);
     }
-    checkSession();
+    decidirDestino();
   }, []);
-
-  async function handleLogin() {
-    setLoading(true);
-    try {
-      const data = await login(email, password);
-      await SecureStore.setItemAsync('token', data.token);
-      router.replace('/home');
-    } catch (error) {
-      Alert.alert('Erro', 'Email ou senha inválidos');
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  if (checkingSession) {
-    return <View style={styles.screen} />;
-  }
 
   return (
     <View style={styles.screen}>
-      <View style={[styles.blob, styles.blobTop]} />
-      <View style={[styles.blob, styles.blobBottom]} />
-
-      <View style={styles.container}>
-        <Text variant="headlineLarge" style={styles.title}>WalletAI</Text>
-        <Text variant="bodyMedium" style={styles.subtitle}>Gestão financeira inteligente</Text>
-
-        <GlassCard style={styles.card}>
-          <TextInput
-            label="Email"
-            value={email}
-            onChangeText={setEmail}
-            autoCapitalize="none"
-            keyboardType="email-address"
-            mode="flat"
-            style={styles.input}
-            underlineColor="transparent"
-            textColor={Colors.textPrimary}
-          />
-          <TextInput
-            label="Senha"
-            value={password}
-            onChangeText={setPassword}
-            secureTextEntry
-            mode="flat"
-            style={styles.input}
-            underlineColor="transparent"
-            textColor={Colors.textPrimary}
-          />
-
-          <Button mode="contained" onPress={handleLogin} loading={loading} style={styles.button} buttonColor={Colors.primary}>
-            Entrar
-          </Button>
-
-          <Button mode="text" onPress={() => router.push('/register')} textColor={Colors.primaryLight}>
-            Não tem conta? Cadastre-se
-          </Button>
-        </GlassCard>
-      </View>
+      <Animated.View style={[styles.logoWrapper, { opacity, transform: [{ scale }, { translateY }] }]}>
+        <Animated.View
+          style={[styles.glowOuter, { opacity: glow.interpolate({ inputRange: [0.4, 1], outputRange: [0.03, 0.08] }) }]}
+        />
+        <Animated.View
+          style={[styles.glowMiddle, { opacity: glow.interpolate({ inputRange: [0.4, 1], outputRange: [0.06, 0.14] }) }]}
+        />
+        <Animated.View
+          style={[styles.glowInner, { opacity: glow.interpolate({ inputRange: [0.4, 1], outputRange: [0.1, 0.22] }) }]}
+        />
+        <Image
+          source={require('../../assets/images/logo.png')}
+          style={styles.logoImage}
+          resizeMode="contain"
+        />
+      </Animated.View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: Colors.background, overflow: 'hidden' },
-  blob: { position: 'absolute', width: 300, height: 300, borderRadius: 150, backgroundColor: Colors.primary, opacity: 0.25 },
-  blobTop: { top: -100, right: -80 },
-  blobBottom: { bottom: -80, left: -100 },
-  container: { flex: 1, justifyContent: 'center', padding: 24 },
-  title: { textAlign: 'center', color: Colors.textPrimary, fontWeight: '700' },
-  subtitle: { textAlign: 'center', color: Colors.textSecondary, marginBottom: 32 },
-  card: { marginTop: 8 },
-  input: { backgroundColor: Colors.inputBackground, marginBottom: 12, borderRadius: 12 },
-  button: { marginTop: 8, paddingVertical: 4, borderRadius: 12 },
+  screen: { flex: 1, backgroundColor: Colors.background, justifyContent: 'center', alignItems: 'center' },
+  logoWrapper: { justifyContent: 'center', alignItems: 'center' },
+  glowOuter: {
+    position: 'absolute',
+    width: 300,
+    height: 300,
+    borderRadius: 150,
+    backgroundColor: Colors.primary,
+  },
+  glowMiddle: {
+    position: 'absolute',
+    width: 240,
+    height: 240,
+    borderRadius: 120,
+    backgroundColor: Colors.primary,
+  },
+  glowInner: {
+    position: 'absolute',
+    width: 195,
+    height: 195,
+    borderRadius: 97.5,
+    backgroundColor: Colors.primary,
+  },
+  logoImage: {
+    width: 180,
+    height: 180,
+  },
 });

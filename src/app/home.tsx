@@ -10,7 +10,7 @@ export default function HomeScreen() {
 
   async function handleLogout() {
     await SecureStore.deleteItemAsync('token');
-    router.replace('/');
+    router.replace('/login');
   }
 
   return (
@@ -24,7 +24,10 @@ export default function HomeScreen() {
           <Text variant="bodyMedium" style={styles.subtitle}>
             Login funcionando de ponta a ponta. As telas de transações e dashboard vêm aqui.
           </Text>
-          <Button mode="outlined" onPress={handleLogout} textColor={Colors.primaryLight} style={styles.button}>
+          <Button mode="contained" onPress={() => router.push('/transactions')} buttonColor={Colors.primary} style={styles.button}>
+            Ver transações
+          </Button>
+          <Button mode="outlined" onPress={handleLogout} textColor={Colors.primaryLight} style={[styles.button, { marginTop: 8 }]}>
             Sair
           </Button>
         </GlassCard>

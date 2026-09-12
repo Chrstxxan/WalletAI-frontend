@@ -1,29 +1,30 @@
 import { useState } from 'react';
 import { View, StyleSheet, Alert } from 'react-native';
-import { TextInput, Button, Text } from 'react-native-paper';
+import { TextInput, Button, Text, SegmentedButtons } from 'react-native-paper';
 import { useRouter } from 'expo-router';
-import { register } from '@/services/api';
+import { createTransaction } from '@/services/api';
 import { GlassCard } from '@/components/GlassCard';
 import { Colors } from '@/constants/colors';
 
-export default function RegisterScreen() {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+export default function AddTransactionScreen() {
+  const [amount, setAmount] = useState('');
+  const [type, setType] = useState('despesa');
+  const [description, setDescription] = useState('');
   const [loading, setLoading] = useState(false);
   const router = useRouter();
 
-  async function handleRegister() {
+  async function handleSubmit() {
+    if (!amount || !description) {
+      Alert.alert('Erro', 'Preencha valor e descrição');
+      return;
+    }
     setLoading(true);
     try {
-      await register(email, password);
-      Alert.alert('Sucesso', 'Conta criada! Faça login.');
+      const transaction = await createTransaction(parseFloat(amount.replace(',', '.')), type, description);
+      Alert.alert('Sucesso', `Categorizado como: ${transaction.category.name}`);
       router.back();
     } catch (error) {
-      if (error instanceof TypeError) {
-        Alert.alert('Erro de conexão', 'Não foi possível conectar ao servidor. Verifique se o backend está rodando e se o celular está na mesma rede Wi-Fi.');
-      } else {
-        Alert.alert('Erro', 'Não foi possível cadastrar (email já existe?)');
-      }
+      Alert.alert('Erro', 'Não foi possível salvar a transação');
     } finally {
       setLoading(false);
     }
@@ -35,34 +36,43 @@ export default function RegisterScreen() {
       <View style={[styles.blob, styles.blobBottom]} />
 
       <View style={styles.container}>
-        <Text variant="headlineLarge" style={styles.title}>Criar conta</Text>
-        <Text variant="bodyMedium" style={styles.subtitle}>Comece a organizar suas finanças</Text>
+        <Text variant="headlineLarge" style={styles.title}>Nova transação</Text>
+        <Text variant="bodyMedium" style={styles.subtitle}>A categoria é sugerida automaticamente pela IA</Text>
 
         <GlassCard style={styles.card}>
+          <SegmentedButtons
+            value={type}
+            onValueChange={setType}
+            style={styles.segmented}
+            buttons={[
+              { value: 'despesa', label: 'Despesa' },
+              { value: 'receita', label: 'Receita' },
+            ]}
+          />
+
           <TextInput
-            label="Email"
-            value={email}
-            onChangeText={setEmail}
-            autoCapitalize="none"
-            keyboardType="email-address"
+            label="Valor (R$)"
+            value={amount}
+            onChangeText={setAmount}
+            keyboardType="decimal-pad"
             mode="flat"
             style={styles.input}
             underlineColor="transparent"
             textColor={Colors.textPrimary}
           />
           <TextInput
-            label="Senha"
-            value={password}
-            onChangeText={setPassword}
-            secureTextEntry
+            label="Descrição"
+            value={description}
+            onChangeText={setDescription}
+            placeholder="Ex: iFood, Uber, Aluguel..."
             mode="flat"
             style={styles.input}
             underlineColor="transparent"
             textColor={Colors.textPrimary}
           />
 
-          <Button mode="contained" onPress={handleRegister} loading={loading} style={styles.button} buttonColor={Colors.primary}>
-            Cadastrar
+          <Button mode="contained" onPress={handleSubmit} loading={loading} style={styles.button} buttonColor={Colors.primary}>
+            Salvar
           </Button>
         </GlassCard>
       </View>
@@ -79,6 +89,7 @@ const styles = StyleSheet.create({
   title: { textAlign: 'center', color: Colors.textPrimary, fontWeight: '700' },
   subtitle: { textAlign: 'center', color: Colors.textSecondary, marginBottom: 32 },
   card: { marginTop: 8 },
+  segmented: { marginBottom: 16 },
   input: { backgroundColor: Colors.inputBackground, marginBottom: 12, borderRadius: 12 },
   button: { marginTop: 8, paddingVertical: 4, borderRadius: 12 },
 });
