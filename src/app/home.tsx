@@ -9,6 +9,7 @@ import { GlassCard } from '@/components/GlassCard';
 import { Colors } from '@/constants/colors';
 
 type DashboardData = {
+  monthlyIncome: number;
   totalDespesas: number;
   totalReceitas: number;
   limiteLivre: number;
@@ -24,6 +25,7 @@ const DONUT_INNER_COLOR = 'rgba(0,0,0,0.35)';
 export default function HomeScreen() {
   const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [selectedCategoria, setSelectedCategoria] = useState<{ categoria: string; valor: number } | null>(null);
   const router = useRouter();
 
   useFocusEffect(
@@ -32,6 +34,7 @@ export default function HomeScreen() {
         try {
           const dashboard = await getDashboard();
           setData(dashboard);
+          setSelectedCategoria(null);
         } finally {
           setLoading(false);
         }
@@ -65,11 +68,10 @@ export default function HomeScreen() {
   const categoriaData = data.gastosPorCategoria.map((item, index) => ({
     value: item.valor,
     color: CATEGORY_COLORS[index % CATEGORY_COLORS.length],
-    text: item.categoria,
   }));
 
   const barData = [
-    { value: data.totalReceitas, label: 'Receitas', frontColor: Colors.primaryLight },
+    { value: data.monthlyIncome + data.totalReceitas, label: 'Receitas', frontColor: Colors.primaryLight },
     { value: data.totalDespesas, label: 'Despesas', frontColor: '#FF6B6B' },
   ];
 
@@ -101,7 +103,7 @@ export default function HomeScreen() {
             R$ {data.disponivel.toFixed(2)}
           </Text>
 
-          <View style={styles.gaugeWrapper}>
+          <View style={styles.chartWrapper}>
             <PieChart
               data={gaugeData}
               donut
@@ -127,22 +129,27 @@ export default function HomeScreen() {
             <Text style={styles.emptyText}>Nenhum gasto registrado este mês</Text>
           ) : (
             <>
-              <PieChart
-                data={categoriaData}
-                donut
-                radius={70}
-                innerRadius={44}
-                backgroundColor="transparent"
-                innerCircleColor={DONUT_INNER_COLOR}
-              />
-              <View style={styles.legendList}>
-                {categoriaData.map((item) => (
-                  <View key={item.text} style={[styles.legendRow, { backgroundColor: `${item.color}1A` }]}>
-                    <View style={[styles.legendDot, { backgroundColor: item.color }]} />
-                    <Text style={styles.legendText}>{item.text}</Text>
-                    <Text style={styles.legendValue}>R$ {item.value.toFixed(2)}</Text>
+              <View style={styles.chartWrapper}>
+                <PieChart
+                  data={categoriaData}
+                  donut
+                  radius={80}
+                  innerRadius={50}
+                  backgroundColor="transparent"
+                  innerCircleColor={DONUT_INNER_COLOR}
+                  focusOnPress
+                  onPress={(_item: any, index: number) => setSelectedCategoria(data.gastosPorCategoria[index])}
+                />
+              </View>
+              <View style={styles.selectedInfo}>
+                {selectedCategoria ? (
+                  <View style={[styles.selectedChip, { backgroundColor: `${categoriaData[data.gastosPorCategoria.indexOf(selectedCategoria)]?.color ?? Colors.primary}22` }]}>
+                    <Text style={styles.selectedText}>{selectedCategoria.categoria}</Text>
+                    <Text style={styles.selectedValue}>R$ {selectedCategoria.valor.toFixed(2)}</Text>
                   </View>
-                ))}
+                ) : (
+                  <Text style={styles.tapHint}>Toque em uma fatia para ver o valor</Text>
+                )}
               </View>
             </>
           )}
@@ -150,18 +157,20 @@ export default function HomeScreen() {
 
         <GlassCard style={styles.card}>
           <Text style={styles.sectionTitle}>Receitas x Despesas</Text>
-          <BarChart
-            data={barData}
-            barWidth={40}
-            spacing={40}
-            roundedTop
-            hideRules
-            xAxisColor={Colors.glassBorder}
-            yAxisColor={Colors.glassBorder}
-            xAxisLabelTextStyle={{ color: Colors.textSecondary, fontSize: 12 }}
-            yAxisTextStyle={{ color: Colors.textSecondary, fontSize: 10 }}
-            noOfSections={4}
-          />
+          <View style={styles.chartWrapper}>
+            <BarChart
+              data={barData}
+              barWidth={40}
+              spacing={40}
+              roundedTop
+              hideRules
+              xAxisColor={Colors.glassBorder}
+              yAxisColor={Colors.glassBorder}
+              xAxisLabelTextStyle={{ color: Colors.textSecondary, fontSize: 12 }}
+              yAxisTextStyle={{ color: Colors.textSecondary, fontSize: 10 }}
+              noOfSections={4}
+            />
+          </View>
         </GlassCard>
 
         <View style={styles.actions}>
@@ -170,6 +179,9 @@ export default function HomeScreen() {
           </Button>
           <Button mode="outlined" onPress={() => router.push('/financial-profile')} textColor={Colors.primaryLight} style={styles.button}>
             Meus dados financeiros
+          </Button>
+          <Button mode="outlined" onPress={() => router.push('/chat')} textColor={Colors.primaryLight} style={styles.button}>
+            Falar com a IA
           </Button>
           <Button mode="text" onPress={handleLogout} textColor={Colors.textSecondary} style={styles.button}>
             Sair
@@ -186,23 +198,23 @@ const styles = StyleSheet.create({
   blobTop: { top: -100, right: -80 },
   container: { padding: 24, paddingTop: 60, paddingBottom: 40 },
   title: { color: Colors.textPrimary, fontWeight: '700', marginBottom: 20 },
-  card: { marginBottom: 16, alignItems: 'center' },
-  alertCard: { backgroundColor: 'rgba(255,107,107,0.12)', alignItems: 'flex-start' },
+  card: { marginBottom: 16 },
+  alertCard: { backgroundColor: 'rgba(255,107,107,0.12)' },
   alertTitle: { color: '#FF6B6B', fontWeight: '700', fontSize: 15, marginBottom: 4 },
   alertBody: { color: Colors.textPrimary, fontSize: 13 },
-  warnCard: { backgroundColor: 'rgba(255,183,77,0.12)', alignItems: 'flex-start' },
+  warnCard: { backgroundColor: 'rgba(255,183,77,0.12)' },
   warnTitle: { color: '#FFB74D', fontWeight: '700', fontSize: 15, marginBottom: 4 },
   warnBody: { color: Colors.textPrimary, fontSize: 13 },
-  label: { color: Colors.textSecondary, fontSize: 14, marginBottom: 4, alignSelf: 'flex-start' },
-  bigNumber: { fontSize: 32, fontWeight: '800', marginBottom: 12, alignSelf: 'flex-start' },
-  gaugeWrapper: { marginTop: 8 },
-  sectionTitle: { color: Colors.textPrimary, fontSize: 16, fontWeight: '700', marginBottom: 16, alignSelf: 'flex-start' },
+  label: { color: Colors.textSecondary, fontSize: 14, marginBottom: 4 },
+  bigNumber: { fontSize: 32, fontWeight: '800', marginBottom: 12 },
+  chartWrapper: { width: '100%', alignItems: 'center', marginTop: 8 },
+  sectionTitle: { color: Colors.textPrimary, fontSize: 16, fontWeight: '700', marginBottom: 16 },
   emptyText: { color: Colors.textSecondary, fontSize: 13 },
-  legendList: { width: '100%', marginTop: 20, gap: 8 },
-  legendRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 10, paddingHorizontal: 14, borderRadius: 12 },
-  legendDot: { width: 10, height: 10, borderRadius: 5, marginRight: 10 },
-  legendText: { color: Colors.textPrimary, fontSize: 14, flex: 1, fontWeight: '500' },
-  legendValue: { color: Colors.textSecondary, fontSize: 14, fontWeight: '600' },
+  selectedInfo: { marginTop: 16, minHeight: 40, justifyContent: 'center', alignItems: 'center', width: '100%' },
+  selectedChip: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 10, paddingHorizontal: 18, borderRadius: 14 },
+  selectedText: { color: Colors.textPrimary, fontSize: 14, fontWeight: '600' },
+  selectedValue: { color: Colors.textPrimary, fontSize: 14, fontWeight: '800' },
+  tapHint: { color: Colors.textSecondary, fontSize: 12, fontStyle: 'italic' },
   actions: { gap: 10, marginTop: 8 },
   button: { borderRadius: 12 },
 });

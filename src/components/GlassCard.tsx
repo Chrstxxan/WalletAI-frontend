@@ -4,20 +4,25 @@ import { Colors } from '@/constants/colors';
 
 export function GlassCard({ style, children, ...props }: ViewProps) {
   return (
-    <View style={[styles.wrapper, style]} {...props}>
-      <BlurView intensity={40} tint="dark" style={StyleSheet.absoluteFill} />
-      <View style={[StyleSheet.absoluteFill, styles.tintOverlay]} pointerEvents="none" />
+    <View style={[styles.outer, style]} {...props}>
+      <View style={[StyleSheet.absoluteFill, styles.backgroundLayer]} pointerEvents="none">
+        <BlurView intensity={40} tint="dark" style={StyleSheet.absoluteFill} />
+        <View style={[StyleSheet.absoluteFill, styles.tintOverlay]} />
+      </View>
       <View style={styles.content}>{children}</View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  wrapper: {
+  outer: {
     borderRadius: 24,
-    overflow: 'hidden',
     borderWidth: 1,
     borderColor: Colors.glassBorder,
+  },
+  backgroundLayer: {
+    borderRadius: 24,
+    overflow: 'hidden',
   },
   tintOverlay: {
     backgroundColor: Colors.glassTint,

@@ -133,3 +133,13 @@ export async function deleteTransaction(id: number) {
   if (!response.ok) throw new Error('Não foi possível excluir a transação');
   return response.json();
 }
+
+export async function sendChatMessage(message: string) {
+  const response = await fetch(`${API_URL}/chat`, {
+    method: 'POST',
+    headers: await getAuthHeaders(),
+    body: JSON.stringify({ message }),
+  });
+  if (!response.ok) throw new Error('Não foi possível enviar a mensagem');
+  return response.json();
+}
