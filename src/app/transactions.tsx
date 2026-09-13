@@ -1,8 +1,8 @@
 import { useState, useCallback } from 'react';
-import { View, StyleSheet, FlatList, RefreshControl } from 'react-native';
-import { Text, Button, ActivityIndicator } from 'react-native-paper';
+import { View, StyleSheet, FlatList, RefreshControl, Alert } from 'react-native';
+import { Text, Button, ActivityIndicator, IconButton } from 'react-native-paper';
 import { useRouter, useFocusEffect } from 'expo-router';
-import { getTransactions } from '@/services/api';
+import { getTransactions, deleteTransaction } from '@/services/api';
 import { GlassCard } from '@/components/GlassCard';
 import { Colors } from '@/constants/colors';
 
@@ -31,7 +31,6 @@ export default function TransactionsScreen() {
     }
   }
 
-  // Recarrega a lista toda vez que a tela ganha foco (ex: ao voltar de "Adicionar")
   useFocusEffect(
     useCallback(() => {
       loadTransactions();
@@ -41,6 +40,26 @@ export default function TransactionsScreen() {
   function handleRefresh() {
     setRefreshing(true);
     loadTransactions();
+  }
+
+  function confirmDelete(id: number, description: string) {
+    Alert.alert(
+      'Excluir transação',
+      `Tem certeza que deseja excluir "${description}"?`,
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        { text: 'Excluir', style: 'destructive', onPress: () => handleDelete(id) },
+      ]
+    );
+  }
+
+  async function handleDelete(id: number) {
+    try {
+      await deleteTransaction(id);
+      setTransactions((prev) => prev.filter((t) => t.id !== id));
+    } catch (error) {
+      Alert.alert('Erro', 'Não foi possível excluir a transação');
+    }
   }
 
   return (
@@ -63,13 +82,19 @@ export default function TransactionsScreen() {
             renderItem={({ item }) => (
               <GlassCard style={styles.item}>
                 <View style={styles.itemRow}>
-                  <View>
+                  <View style={{ flex: 1 }}>
                     <Text style={styles.itemDescription}>{item.description}</Text>
                     <Text style={styles.itemCategory}>{item.category.name}</Text>
                   </View>
                   <Text style={[styles.itemAmount, { color: item.type === 'receita' ? Colors.primaryLight : '#FF6B6B' }]}>
                     {item.type === 'receita' ? '+' : '-'} R$ {item.amount.toFixed(2)}
                   </Text>
+                  <IconButton
+                    icon="trash-can-outline"
+                    iconColor={Colors.textSecondary}
+                    size={20}
+                    onPress={() => confirmDelete(item.id, item.description)}
+                  />
                 </View>
               </GlassCard>
             )}

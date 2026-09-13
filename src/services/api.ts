@@ -68,13 +68,51 @@ export async function getFinancialProfile() {
   return response.json();
 }
 
-export async function updateFinancialProfile(monthlyIncome: number, fixedExpenses: number, workingCapital: number, creditTypes: string[]) {
+export async function updateFinancialProfile(workingCapital: number, creditTypes: string[]) {
   const response = await fetch(`${API_URL}/financial/profile`, {
     method: 'PUT',
     headers: await getAuthHeaders(),
-    body: JSON.stringify({ monthlyIncome, fixedExpenses, workingCapital, creditTypes }),
+    body: JSON.stringify({ workingCapital, creditTypes }),
   });
   if (!response.ok) throw new Error('Não foi possível salvar o perfil financeiro');
+  return response.json();
+}
+
+export async function getIncomeSources() {
+  const response = await fetch(`${API_URL}/financial/income-sources`, {
+    method: 'GET',
+    headers: await getAuthHeaders(),
+  });
+  if (!response.ok) throw new Error('Não foi possível buscar as fontes de renda');
+  return response.json();
+}
+
+export async function updateIncomeSources(sources: { description: string; amount: number }[]) {
+  const response = await fetch(`${API_URL}/financial/income-sources`, {
+    method: 'PUT',
+    headers: await getAuthHeaders(),
+    body: JSON.stringify({ sources }),
+  });
+  if (!response.ok) throw new Error('Não foi possível salvar as fontes de renda');
+  return response.json();
+}
+
+export async function getFixedExpenses() {
+  const response = await fetch(`${API_URL}/financial/fixed-expenses`, {
+    method: 'GET',
+    headers: await getAuthHeaders(),
+  });
+  if (!response.ok) throw new Error('Não foi possível buscar as despesas fixas');
+  return response.json();
+}
+
+export async function updateFixedExpenses(items: { description: string; amount: number }[]) {
+  const response = await fetch(`${API_URL}/financial/fixed-expenses`, {
+    method: 'PUT',
+    headers: await getAuthHeaders(),
+    body: JSON.stringify({ items }),
+  });
+  if (!response.ok) throw new Error('Não foi possível salvar as despesas fixas');
   return response.json();
 }
 
@@ -84,5 +122,14 @@ export async function getDashboard() {
     headers: await getAuthHeaders(),
   });
   if (!response.ok) throw new Error('Não foi possível buscar o dashboard');
+  return response.json();
+}
+
+export async function deleteTransaction(id: number) {
+  const response = await fetch(`${API_URL}/transactions/${id}`, {
+    method: 'DELETE',
+    headers: await getAuthHeaders(),
+  });
+  if (!response.ok) throw new Error('Não foi possível excluir a transação');
   return response.json();
 }
