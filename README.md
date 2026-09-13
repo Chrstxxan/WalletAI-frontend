@@ -65,10 +65,12 @@ walletai/
 - [x] Cadastro de usuário
 - [x] Login com autenticação via JWT
 - [x] Persistência de sessão (login automático em sessões futuras)
-- [ ] Dashboard de gastos
-- [ ] Cadastro e listagem de transações
-- [ ] Categorização automática via IA
-- [ ] Chat com IA sobre os gastos
+- [x] Dashboard de gastos
+- [x] Cadastro e listagem de transações
+- [x] Categorização automática via IA
+- [x] Chat com IA sobre os gastos
+- [ ] Administração de gastos detalhados com cartões de crédito
+- [ ] Gerenciamento de perfil do usuário dentro do app
 
 ## Gerando um build instalável (APK)
 
