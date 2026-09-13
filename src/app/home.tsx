@@ -1,10 +1,10 @@
 import { useState, useCallback } from 'react';
 import { View, StyleSheet, ScrollView } from 'react-native';
-import { Text, Button, ActivityIndicator } from 'react-native-paper';
+import { Text, Button, ActivityIndicator, IconButton } from 'react-native-paper';
 import { useRouter, useFocusEffect } from 'expo-router';
 import * as SecureStore from 'expo-secure-store';
 import { PieChart, BarChart } from 'react-native-gifted-charts';
-import { getDashboard } from '@/services/api';
+import { getDashboard, getMe } from '@/services/api';
 import { GlassCard } from '@/components/GlassCard';
 import { Colors } from '@/constants/colors';
 
@@ -12,6 +12,8 @@ type DashboardData = {
   monthlyIncome: number;
   totalDespesas: number;
   totalReceitas: number;
+  totalFaturaCartoes: number;
+  fixedExpenses: number;
   limiteLivre: number;
   disponivel: number;
   percentualUsado: number;
@@ -24,6 +26,7 @@ const DONUT_INNER_COLOR = 'rgba(0,0,0,0.35)';
 
 export default function HomeScreen() {
   const [data, setData] = useState<DashboardData | null>(null);
+  const [userName, setUserName] = useState('');
   const [loading, setLoading] = useState(true);
   const [selectedCategoria, setSelectedCategoria] = useState<{ categoria: string; valor: number } | null>(null);
   const router = useRouter();
@@ -32,8 +35,9 @@ export default function HomeScreen() {
     useCallback(() => {
       async function load() {
         try {
-          const dashboard = await getDashboard();
+          const [dashboard, user] = await Promise.all([getDashboard(), getMe()]);
           setData(dashboard);
+          setUserName(user.name || '');
           setSelectedCategoria(null);
         } finally {
           setLoading(false);
@@ -70,9 +74,11 @@ export default function HomeScreen() {
     color: CATEGORY_COLORS[index % CATEGORY_COLORS.length],
   }));
 
+  const totalDespesasCompleto = data.totalDespesas + data.fixedExpenses + data.totalFaturaCartoes;
+
   const barData = [
     { value: data.monthlyIncome + data.totalReceitas, label: 'Receitas', frontColor: Colors.primaryLight },
-    { value: data.totalDespesas, label: 'Despesas', frontColor: '#FF6B6B' },
+    { value: totalDespesasCompleto, label: 'Despesas', frontColor: '#FF6B6B' },
   ];
 
   return (
@@ -80,7 +86,12 @@ export default function HomeScreen() {
       <View style={[styles.blob, styles.blobTop]} />
 
       <ScrollView contentContainerStyle={styles.container}>
-        <Text variant="headlineLarge" style={styles.title}>Olá! 👋</Text>
+        <View style={styles.headerRow}>
+          <Text variant="headlineLarge" style={styles.title}>
+            Olá{userName ? `, ${userName}` : ''}! 👋
+          </Text>
+          <IconButton icon="account-circle-outline" iconColor={Colors.textPrimary} size={30} onPress={() => router.push('/profile')} />
+        </View>
 
         {estourado && (
           <GlassCard style={[styles.card, styles.alertCard]}>
@@ -180,6 +191,9 @@ export default function HomeScreen() {
           <Button mode="outlined" onPress={() => router.push('/financial-profile')} textColor={Colors.primaryLight} style={styles.button}>
             Meus dados financeiros
           </Button>
+          <Button mode="outlined" onPress={() => router.push('/credit-cards')} textColor={Colors.primaryLight} style={styles.button}>
+            Cartões de crédito
+          </Button>
           <Button mode="outlined" onPress={() => router.push('/chat')} textColor={Colors.primaryLight} style={styles.button}>
             Falar com a IA
           </Button>
@@ -197,7 +211,8 @@ const styles = StyleSheet.create({
   blob: { position: 'absolute', width: 300, height: 300, borderRadius: 150, backgroundColor: Colors.primary, opacity: 0.15 },
   blobTop: { top: -100, right: -80 },
   container: { padding: 24, paddingTop: 60, paddingBottom: 40 },
-  title: { color: Colors.textPrimary, fontWeight: '700', marginBottom: 20 },
+  headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20, gap: 8 },
+  title: { color: Colors.textPrimary, fontWeight: '700', flex: 1 },
   card: { marginBottom: 16 },
   alertCard: { backgroundColor: 'rgba(255,107,107,0.12)' },
   alertTitle: { color: '#FF6B6B', fontWeight: '700', fontSize: 15, marginBottom: 4 },
