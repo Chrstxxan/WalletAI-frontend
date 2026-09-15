@@ -1,10 +1,13 @@
 import { useState, useEffect } from 'react';
 import { View, StyleSheet, Alert, ScrollView } from 'react-native';
-import { TextInput, Button, Text } from 'react-native-paper';
+import { TextInput, Button, Text, Switch, ActivityIndicator } from 'react-native-paper';
 import { useRouter } from 'expo-router';
+import * as SecureStore from 'expo-secure-store';
 import { getMe, updateMe, resetPassword } from '@/services/api';
 import { GlassCard } from '@/components/GlassCard';
+import { BottomNavBar } from '@/components/BottomNavBar';
 import { Colors } from '@/constants/colors';
+import { isAppLockEnabled, isDeviceLockAvailable, setAppLockEnabled, unlockWithDeviceAuth } from '@/utils/appLock';
 
 export default function ProfileScreen() {
   const [name, setName] = useState('');
@@ -13,20 +16,60 @@ export default function ProfileScreen() {
   const [loadingInitial, setLoadingInitial] = useState(true);
   const [savingInfo, setSavingInfo] = useState(false);
   const [savingPassword, setSavingPassword] = useState(false);
+  const [lockEnabled, setLockEnabled] = useState(false);
+  const [lockAvailable, setLockAvailable] = useState(true);
+  const [togglingLock, setTogglingLock] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
     async function load() {
       try {
-        const user = await getMe();
+        const [user, lockOn, lockPossivel] = await Promise.all([
+          getMe(),
+          isAppLockEnabled(),
+          isDeviceLockAvailable(),
+        ]);
         setName(user.name || '');
         setEmail(user.email || '');
+        setLockEnabled(lockOn);
+        setLockAvailable(lockPossivel);
       } finally {
         setLoadingInitial(false);
       }
     }
     load();
   }, []);
+
+  async function handleToggleLock(value: boolean) {
+    setTogglingLock(true);
+    try {
+      if (value) {
+        const confirmado = await unlockWithDeviceAuth();
+        if (!confirmado) {
+          Alert.alert('Não foi possível confirmar', 'Tente novamente para ativar o bloqueio.');
+          return;
+        }
+      }
+      await setAppLockEnabled(value);
+      setLockEnabled(value);
+    } finally {
+      setTogglingLock(false);
+    }
+  }
+
+  function confirmLogout() {
+    Alert.alert('Sair da conta', 'Tem certeza que deseja sair?', [
+      { text: 'Cancelar', style: 'cancel' },
+      {
+        text: 'Sair',
+        style: 'destructive',
+        onPress: async () => {
+          await SecureStore.deleteItemAsync('token');
+          router.replace('/login');
+        },
+      },
+    ]);
+  }
 
   async function handleSaveInfo() {
     setSavingInfo(true);
@@ -58,7 +101,11 @@ export default function ProfileScreen() {
   }
 
   if (loadingInitial) {
-    return <View style={styles.screen} />;
+    return (
+      <View style={styles.screen}>
+        <ActivityIndicator color={Colors.primary} style={{ marginTop: 100 }} />
+      </View>
+    );
   }
 
   return (
@@ -112,10 +159,36 @@ export default function ProfileScreen() {
           </Button>
         </GlassCard>
 
+        <GlassCard style={styles.card}>
+          <Text style={styles.sectionTitle}>Segurança</Text>
+          <View style={styles.lockRow}>
+            <View style={styles.lockTextWrap}>
+              <Text style={styles.lockLabel}>Bloquear o app</Text>
+              <Text style={styles.lockHint}>
+                {lockAvailable
+                  ? 'Exige biometria ou a senha do aparelho para abrir o WalletAI'
+                  : 'Nenhuma biometria ou senha configurada neste aparelho'}
+              </Text>
+            </View>
+            <Switch
+              value={lockEnabled}
+              onValueChange={handleToggleLock}
+              disabled={!lockAvailable || togglingLock}
+              color={Colors.primary}
+            />
+          </View>
+        </GlassCard>
+
         <Button mode="outlined" onPress={() => router.push('/financial-profile')} textColor={Colors.primaryLight} style={styles.linkButton}>
           Meus dados financeiros
         </Button>
+
+        <Button mode="text" onPress={confirmLogout} textColor={Colors.textSecondary} style={styles.logoutButton}>
+          Sair da conta
+        </Button>
       </ScrollView>
+
+      <BottomNavBar />
     </View>
   );
 }
@@ -124,11 +197,16 @@ const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: Colors.background },
   blob: { position: 'absolute', width: 300, height: 300, borderRadius: 150, backgroundColor: Colors.primary, opacity: 0.2 },
   blobTop: { top: -100, right: -80 },
-  container: { padding: 24, paddingTop: 60, paddingBottom: 40 },
+  container: { padding: 24, paddingTop: 60, paddingBottom: 130 },
   title: { textAlign: 'center', color: Colors.textPrimary, fontWeight: '700', marginBottom: 24 },
   card: { marginBottom: 16 },
   sectionTitle: { color: Colors.textPrimary, fontSize: 16, fontWeight: '700', marginBottom: 12 },
   input: { backgroundColor: Colors.inputBackground, marginBottom: 12, borderRadius: 12 },
   button: { marginTop: 4, paddingVertical: 4, borderRadius: 12 },
   linkButton: { borderRadius: 12, marginTop: 8 },
+  lockRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  lockTextWrap: { flex: 1 },
+  lockLabel: { color: Colors.textPrimary, fontSize: 15, fontWeight: '600', marginBottom: 4 },
+  lockHint: { color: Colors.textSecondary, fontSize: 12, lineHeight: 16 },
+  logoutButton: { marginTop: 20, alignSelf: 'center' },
 });

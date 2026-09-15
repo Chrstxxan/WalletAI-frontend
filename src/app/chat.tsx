@@ -1,15 +1,43 @@
 import { useState, useRef, useEffect } from 'react';
 import { View, StyleSheet, FlatList, KeyboardAvoidingView, Platform, Alert } from 'react-native';
 import { Text, TextInput, IconButton, ActivityIndicator } from 'react-native-paper';
+import { useRouter } from 'expo-router';
 import { sendChatMessage, getChatHistory, clearChatHistory } from '@/services/api';
 import { Colors } from '@/constants/colors';
 
 type Message = { id: string; role: 'user' | 'assistant'; content: string };
 
+function formatLine(line: string): string {
+  const bulletMatch = line.match(/^\s*[-*]\s+(.*)/);
+  return bulletMatch ? `• ${bulletMatch[1]}` : line;
+}
+
+function FormattedMessage({ content, textStyle }: { content: string; textStyle: any }) {
+  const lines = content.split('\n');
+  return (
+    <>
+      {lines.map((rawLine, lineIndex) => {
+        const line = formatLine(rawLine);
+        const parts = line.split(/(\*\*[^*]+\*\*)/g).filter(Boolean);
+        return (
+          <Text key={lineIndex} style={textStyle}>
+            {parts.map((part, partIndex) => {
+              const boldMatch = part.match(/^\*\*([^*]+)\*\*$/);
+              return boldMatch
+                ? <Text key={partIndex} style={styles.bold}>{boldMatch[1]}</Text>
+                : <Text key={partIndex}>{part}</Text>;
+            })}
+          </Text>
+        );
+      })}
+    </>
+  );
+}
+
 const GREETING: Message = {
   id: 'greeting',
   role: 'assistant',
-  content: 'Oi! Pode me perguntar sobre seus gastos, tipo "quanto gastei com alimentação esse mês?" ou "quanto ainda posso gastar?".',
+  content: 'Oi, eu sou o Wally! Pode me perguntar sobre seus gastos, tipo "quanto gastei com alimentação esse mês?" ou "como estão minhas finanças?".',
 };
 
 export default function ChatScreen() {
@@ -18,6 +46,7 @@ export default function ChatScreen() {
   const [loading, setLoading] = useState(false);
   const [loadingHistory, setLoadingHistory] = useState(true);
   const listRef = useRef<FlatList>(null);
+  const router = useRouter();
 
   useEffect(() => {
     async function loadHistory() {
@@ -70,7 +99,8 @@ export default function ChatScreen() {
   return (
     <KeyboardAvoidingView style={styles.screen} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <View style={styles.header}>
-        <Text variant="headlineMedium" style={styles.title}>Assistente WalletAI</Text>
+        <IconButton icon="chevron-left" iconColor={Colors.textPrimary} size={26} onPress={() => router.back()} style={styles.backButton} />
+        <Text style={styles.title} numberOfLines={1} adjustsFontSizeToFit>Wally</Text>
         <IconButton icon="trash-can-outline" iconColor={Colors.textSecondary} size={22} onPress={confirmClear} />
       </View>
 
@@ -85,7 +115,10 @@ export default function ChatScreen() {
           onContentSizeChange={() => listRef.current?.scrollToEnd({ animated: true })}
           renderItem={({ item }) => (
             <View style={[styles.bubble, item.role === 'user' ? styles.userBubble : styles.assistantBubble]}>
-              <Text style={item.role === 'user' ? styles.userText : styles.assistantText}>{item.content}</Text>
+              <FormattedMessage
+                content={item.content}
+                textStyle={item.role === 'user' ? styles.userText : styles.assistantText}
+              />
             </View>
           )}
         />
@@ -112,14 +145,16 @@ export default function ChatScreen() {
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: Colors.background },
-  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingTop: 60, paddingHorizontal: 24, paddingBottom: 8 },
-  title: { color: Colors.textPrimary, fontWeight: '700' },
+  header: { flexDirection: 'row', alignItems: 'center', paddingTop: 60, paddingHorizontal: 12, paddingBottom: 8 },
+  backButton: { margin: 0 },
+  title: { color: Colors.textPrimary, fontWeight: '700', flex: 1, fontSize: 20 },
   messagesList: { paddingHorizontal: 16, paddingBottom: 16, gap: 10 },
   bubble: { maxWidth: '80%', padding: 14, borderRadius: 18 },
   userBubble: { alignSelf: 'flex-end', backgroundColor: Colors.primary, borderBottomRightRadius: 4 },
   assistantBubble: { alignSelf: 'flex-start', backgroundColor: Colors.inputBackground, borderBottomLeftRadius: 4 },
   userText: { color: '#FFFFFF', fontSize: 15 },
   assistantText: { color: Colors.textPrimary, fontSize: 15 },
+  bold: { fontWeight: '700' },
   inputRow: { flexDirection: 'row', alignItems: 'center', padding: 16, gap: 4 },
   input: { flex: 1, backgroundColor: Colors.inputBackground, borderRadius: 20 },
 });

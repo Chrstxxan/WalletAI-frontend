@@ -1,23 +1,34 @@
 import { useState, useEffect } from 'react';
 import { View, StyleSheet, Alert, ScrollView } from 'react-native';
-import { TextInput, Button, Text, IconButton, Switch, Chip } from 'react-native-paper';
+import { TextInput, Button, Text, IconButton, Switch, Chip, ActivityIndicator } from 'react-native-paper';
 import { useRouter } from 'expo-router';
 import {
   getFinancialProfile, updateFinancialProfile,
   getIncomeSources, updateIncomeSources,
   getFixedExpenses, updateFixedExpenses,
-  getCreditCards, addInvoiceItem,
+  getCreditCards,
 } from '@/services/api';
 import { GlassCard } from '@/components/GlassCard';
+import { BackButton } from '@/components/BackButton';
 import { Colors } from '@/constants/colors';
 
-type IncomeRow = { description: string; amount: string };
-type ExpenseRow = { description: string; amount: string; isCreditCard: boolean; cardId: number | null };
+type IncomeRow = { id?: number; description: string; amount: string; recorrente: boolean; month: string; year: string };
+type ExpenseRow = { id?: number; description: string; amount: string; isCreditCard: boolean; cardId: number | null; recorrente: boolean; month: string; year: string };
 type CreditCardOption = { id: number; name: string };
 
+const CURRENT_MONTH = String(new Date().getMonth() + 1);
+const CURRENT_YEAR = String(new Date().getFullYear());
+
+function emptyIncomeRow(): IncomeRow {
+  return { description: '', amount: '', recorrente: true, month: CURRENT_MONTH, year: CURRENT_YEAR };
+}
+function emptyExpenseRow(): ExpenseRow {
+  return { description: '', amount: '', isCreditCard: false, cardId: null, recorrente: true, month: CURRENT_MONTH, year: CURRENT_YEAR };
+}
+
 export default function FinancialProfileScreen() {
-  const [incomeRows, setIncomeRows] = useState<IncomeRow[]>([{ description: '', amount: '' }]);
-  const [expenseRows, setExpenseRows] = useState<ExpenseRow[]>([{ description: '', amount: '', isCreditCard: false, cardId: null }]);
+  const [incomeRows, setIncomeRows] = useState<IncomeRow[]>([emptyIncomeRow()]);
+  const [expenseRows, setExpenseRows] = useState<ExpenseRow[]>([emptyExpenseRow()]);
   const [creditCards, setCreditCards] = useState<CreditCardOption[]>([]);
   const [workingCapital, setWorkingCapital] = useState('');
   const [savingsGoal, setSavingsGoal] = useState('');
@@ -36,16 +47,32 @@ export default function FinancialProfileScreen() {
 
         const sources = await getIncomeSources();
         if (sources.length > 0) {
-          setIncomeRows(sources.map((s: any) => ({ description: s.description, amount: String(s.amount) })));
-        }
-
-        const expenses = await getFixedExpenses();
-        if (expenses.length > 0) {
-          setExpenseRows(expenses.map((e: any) => ({ description: e.description, amount: String(e.amount), isCreditCard: false, cardId: null })));
+          setIncomeRows(sources.map((s: any) => ({
+            id: s.id,
+            description: s.description,
+            amount: String(s.amount),
+            recorrente: s.recorrente !== false,
+            month: s.month ? String(s.month) : CURRENT_MONTH,
+            year: s.year ? String(s.year) : CURRENT_YEAR,
+          })));
         }
 
         const cards = await getCreditCards();
         setCreditCards(cards.map((c: any) => ({ id: c.id, name: c.name })));
+
+        const expenses = await getFixedExpenses();
+        if (expenses.length > 0) {
+          setExpenseRows(expenses.map((e: any) => ({
+            id: e.id,
+            description: e.description,
+            amount: String(e.amount),
+            isCreditCard: !!e.creditCardId,
+            cardId: e.creditCardId || null,
+            recorrente: e.recorrente !== false,
+            month: e.month ? String(e.month) : CURRENT_MONTH,
+            year: e.year ? String(e.year) : CURRENT_YEAR,
+          })));
+        }
       } finally {
         setLoadingInitial(false);
       }
@@ -54,19 +81,19 @@ export default function FinancialProfileScreen() {
   }, []);
 
   function addIncomeRow() {
-    setIncomeRows([...incomeRows, { description: '', amount: '' }]);
+    setIncomeRows([...incomeRows, emptyIncomeRow()]);
   }
   function removeIncomeRow(index: number) {
     setIncomeRows(incomeRows.filter((_, i) => i !== index));
   }
-  function updateIncomeRow(index: number, field: keyof IncomeRow, value: string) {
+  function updateIncomeRow(index: number, field: keyof IncomeRow, value: any) {
     const updated = [...incomeRows];
-    updated[index][field] = value;
+    (updated[index] as any)[field] = value;
     setIncomeRows(updated);
   }
 
   function addExpenseRow() {
-    setExpenseRows([...expenseRows, { description: '', amount: '', isCreditCard: false, cardId: null }]);
+    setExpenseRows([...expenseRows, emptyExpenseRow()]);
   }
   function removeExpenseRow(index: number) {
     setExpenseRows(expenseRows.filter((_, i) => i !== index));
@@ -83,7 +110,14 @@ export default function FinancialProfileScreen() {
   function toValidIncomeList(rows: IncomeRow[]) {
     return rows
       .filter(row => row.description.trim() && row.amount.trim())
-      .map(row => ({ description: row.description.trim(), amount: parseFloat(row.amount.replace(',', '.')) || 0 }));
+      .map(row => ({
+        id: row.id,
+        description: row.description.trim(),
+        amount: parseFloat(row.amount.replace(',', '.')) || 0,
+        recorrente: row.recorrente,
+        month: row.recorrente ? undefined : parseInt(row.month) || undefined,
+        year: row.recorrente ? undefined : parseInt(row.year) || undefined,
+      }));
   }
 
   async function handleSave() {
@@ -98,22 +132,16 @@ export default function FinancialProfileScreen() {
       );
       await updateIncomeSources(toValidIncomeList(incomeRows));
 
-      const despesasNormais = expenseRows.filter(r => !r.isCreditCard && r.description.trim() && r.amount.trim());
-      await updateFixedExpenses(despesasNormais.map(r => ({ description: r.description.trim(), amount: parseFloat(r.amount.replace(',', '.')) || 0 })));
-
-      const despesasNoCartao = expenseRows.filter(r => r.isCreditCard && r.cardId && r.description.trim() && r.amount.trim());
-      const now = new Date();
-      for (const row of despesasNoCartao) {
-        await addInvoiceItem(
-          row.cardId!,
-          now.getMonth() + 1,
-          now.getFullYear(),
-          row.description.trim(),
-          parseFloat(row.amount.replace(',', '.')) || 0,
-          1,
-          1
-        );
-      }
+      const despesasValidas = expenseRows.filter(r => r.description.trim() && r.amount.trim() && (!r.isCreditCard || r.cardId));
+      await updateFixedExpenses(despesasValidas.map(r => ({
+        id: r.id,
+        description: r.description.trim(),
+        amount: parseFloat(r.amount.replace(',', '.')) || 0,
+        recorrente: r.recorrente,
+        month: r.recorrente ? undefined : parseInt(r.month) || undefined,
+        year: r.recorrente ? undefined : parseInt(r.year) || undefined,
+        creditCardId: r.isCreditCard ? r.cardId : null,
+      })));
 
       Alert.alert('Sucesso', 'Dados financeiros atualizados!');
       router.back();
@@ -125,12 +153,18 @@ export default function FinancialProfileScreen() {
   }
 
   if (loadingInitial) {
-    return <View style={styles.screen} />;
+    return (
+      <View style={styles.screen}>
+        <BackButton />
+        <ActivityIndicator color={Colors.primary} style={{ marginTop: 100 }} />
+      </View>
+    );
   }
 
   return (
     <View style={styles.screen}>
       <View style={[styles.blob, styles.blobTop]} />
+      <BackButton />
 
       <ScrollView contentContainerStyle={styles.container}>
         <Text variant="headlineLarge" style={styles.title}>Meus dados financeiros</Text>
@@ -143,27 +177,63 @@ export default function FinancialProfileScreen() {
           </View>
 
           {incomeRows.map((row, index) => (
-            <View key={index} style={styles.itemRow}>
-              <TextInput
-                label="Ex: Salário, Freelance..."
-                value={row.description}
-                onChangeText={(v) => updateIncomeRow(index, 'description', v)}
-                mode="flat"
-                style={[styles.input, styles.descInput]}
-                underlineColor="transparent"
-                textColor={Colors.textPrimary}
-              />
-              <TextInput
-                label="R$"
-                value={row.amount}
-                onChangeText={(v) => updateIncomeRow(index, 'amount', v)}
-                keyboardType="decimal-pad"
-                mode="flat"
-                style={[styles.input, styles.amountInput]}
-                underlineColor="transparent"
-                textColor={Colors.textPrimary}
-              />
-              <IconButton icon="close" iconColor={Colors.textSecondary} size={18} onPress={() => removeIncomeRow(index)} />
+            <View key={index} style={styles.expenseBlock}>
+              <View style={styles.itemRow}>
+                <TextInput
+                  label="Ex: Salário, Freelance..."
+                  value={row.description}
+                  onChangeText={(v) => updateIncomeRow(index, 'description', v)}
+                  mode="flat"
+                  style={[styles.input, styles.descInput]}
+                  underlineColor="transparent"
+                  textColor={Colors.textPrimary}
+                />
+                <TextInput
+                  label="R$"
+                  value={row.amount}
+                  onChangeText={(v) => updateIncomeRow(index, 'amount', v)}
+                  keyboardType="decimal-pad"
+                  mode="flat"
+                  style={[styles.input, styles.amountInput]}
+                  underlineColor="transparent"
+                  textColor={Colors.textPrimary}
+                />
+                <IconButton icon="close" iconColor={Colors.textSecondary} size={18} onPress={() => removeIncomeRow(index)} />
+              </View>
+
+              <View style={styles.toggleRow}>
+                <Switch
+                  value={row.recorrente}
+                  onValueChange={(v) => updateIncomeRow(index, 'recorrente', v)}
+                  color={Colors.primary}
+                />
+                <Text style={styles.toggleLabel}>{row.recorrente ? 'Recorrente (todo mês)' : 'Pontual (só um mês)'}</Text>
+              </View>
+
+              {!row.recorrente && (
+                <View style={styles.rowInputs}>
+                  <TextInput
+                    label="Mês (1-12)"
+                    value={row.month}
+                    onChangeText={(v) => updateIncomeRow(index, 'month', v)}
+                    keyboardType="number-pad"
+                    mode="flat"
+                    style={[styles.input, styles.halfInput]}
+                    underlineColor="transparent"
+                    textColor={Colors.textPrimary}
+                  />
+                  <TextInput
+                    label="Ano"
+                    value={row.year}
+                    onChangeText={(v) => updateIncomeRow(index, 'year', v)}
+                    keyboardType="number-pad"
+                    mode="flat"
+                    style={[styles.input, styles.halfInput]}
+                    underlineColor="transparent"
+                    textColor={Colors.textPrimary}
+                  />
+                </View>
+              )}
             </View>
           ))}
 
@@ -214,6 +284,40 @@ export default function FinancialProfileScreen() {
                 </View>
               )}
 
+              <View style={styles.toggleRow}>
+                <Switch
+                  value={row.recorrente}
+                  onValueChange={(v) => updateExpenseRow(index, 'recorrente', v)}
+                  color={Colors.primary}
+                />
+                <Text style={styles.toggleLabel}>{row.recorrente ? 'Recorrente (todo mês)' : 'Pontual (só um mês)'}</Text>
+              </View>
+
+              {!row.recorrente && (
+                <View style={styles.rowInputs}>
+                  <TextInput
+                    label="Mês (1-12)"
+                    value={row.month}
+                    onChangeText={(v) => updateExpenseRow(index, 'month', v)}
+                    keyboardType="number-pad"
+                    mode="flat"
+                    style={[styles.input, styles.halfInput]}
+                    underlineColor="transparent"
+                    textColor={Colors.textPrimary}
+                  />
+                  <TextInput
+                    label="Ano"
+                    value={row.year}
+                    onChangeText={(v) => updateExpenseRow(index, 'year', v)}
+                    keyboardType="number-pad"
+                    mode="flat"
+                    style={[styles.input, styles.halfInput]}
+                    underlineColor="transparent"
+                    textColor={Colors.textPrimary}
+                  />
+                </View>
+              )}
+
               {row.isCreditCard && (
                 <View style={styles.chipsRow}>
                   {creditCards.map((c) => (
@@ -228,6 +332,14 @@ export default function FinancialProfileScreen() {
                     </Chip>
                   ))}
                 </View>
+              )}
+
+              {row.isCreditCard && row.cardId && (
+                <Text style={styles.cardHelperText}>
+                  {row.recorrente
+                    ? 'Essa cobrança entra automaticamente na fatura desse cartão todo mês, até você remover ou desmarcar.'
+                    : 'Entra só na fatura do mês/ano escolhido acima.'}
+                </Text>
               )}
             </View>
           ))}
@@ -299,6 +411,8 @@ const styles = StyleSheet.create({
   itemRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 4 },
   descInput: { flex: 2, marginRight: 4 },
   amountInput: { flex: 1 },
+  rowInputs: { flexDirection: 'row', gap: 8 },
+  halfInput: { flex: 1 },
   input: { backgroundColor: Colors.inputBackground, marginBottom: 12, borderRadius: 12 },
   toggleRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 8 },
   toggleLabel: { color: Colors.textSecondary, fontSize: 13, marginLeft: 4 },
@@ -306,5 +420,6 @@ const styles = StyleSheet.create({
   chip: { backgroundColor: Colors.inputBackground },
   chipSelected: { backgroundColor: `${Colors.primary}33` },
   helperText: { color: Colors.textSecondary, fontSize: 12, marginTop: -8, marginBottom: 16, paddingHorizontal: 4 },
+  cardHelperText: { color: Colors.textSecondary, fontSize: 11, marginTop: 4, marginBottom: 4 },
   button: { marginTop: 8, paddingVertical: 4, borderRadius: 12 },
 });

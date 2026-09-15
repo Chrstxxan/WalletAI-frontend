@@ -4,6 +4,7 @@ import { TextInput, Button, Text } from 'react-native-paper';
 import { useRouter } from 'expo-router';
 import { createCreditCard } from '@/services/api';
 import { GlassCard } from '@/components/GlassCard';
+import { BackButton } from '@/components/BackButton';
 import { Colors } from '@/constants/colors';
 
 export default function AddCreditCardScreen() {
@@ -36,6 +37,7 @@ export default function AddCreditCardScreen() {
   return (
     <View style={styles.screen}>
       <View style={[styles.blob, styles.blobTop]} />
+      <BackButton />
       <View style={styles.container}>
         <Text variant="headlineLarge" style={styles.title}>Novo cartão</Text>
 

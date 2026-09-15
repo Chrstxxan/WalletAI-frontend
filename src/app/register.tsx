@@ -4,18 +4,24 @@ import { TextInput, Button, Text } from 'react-native-paper';
 import { useRouter } from 'expo-router';
 import { register } from '@/services/api';
 import { GlassCard } from '@/components/GlassCard';
+import { BackButton } from '@/components/BackButton';
 import { Colors } from '@/constants/colors';
 
 export default function RegisterScreen() {
+  const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const router = useRouter();
 
   async function handleRegister() {
+    if (!name.trim()) {
+      Alert.alert('Erro', 'Preencha seu nome');
+      return;
+    }
     setLoading(true);
     try {
-      await register(email, password);
+      await register(name.trim(), email, password);
       Alert.alert('Sucesso', 'Conta criada! Faça login.');
       router.back();
     } catch (error) {
@@ -33,12 +39,22 @@ export default function RegisterScreen() {
     <View style={styles.screen}>
       <View style={[styles.blob, styles.blobTop]} />
       <View style={[styles.blob, styles.blobBottom]} />
+      <BackButton />
 
       <View style={styles.container}>
         <Text variant="headlineLarge" style={styles.title}>Criar conta</Text>
         <Text variant="bodyMedium" style={styles.subtitle}>Comece a organizar suas finanças</Text>
 
         <GlassCard style={styles.card}>
+          <TextInput
+            label="Nome"
+            value={name}
+            onChangeText={setName}
+            mode="flat"
+            style={styles.input}
+            underlineColor="transparent"
+            textColor={Colors.textPrimary}
+          />
           <TextInput
             label="Email"
             value={email}

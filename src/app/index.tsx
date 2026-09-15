@@ -1,8 +1,11 @@
 import { useEffect, useRef } from 'react';
-import { View, StyleSheet, Animated, Easing, Image } from 'react-native';
+import { View, StyleSheet, Animated, Easing, Image, useWindowDimensions } from 'react-native';
+import { BlurView } from 'expo-blur';
 import { useRouter } from 'expo-router';
 import * as SecureStore from 'expo-secure-store';
 import { Colors } from '@/constants/colors';
+import { isAppLockEnabled, isDeviceLockAvailable } from '@/utils/appLock';
+import { resolvePostAuthRoute } from '@/utils/postAuthRoute';
 
 export default function SplashScreen() {
   const scale = useRef(new Animated.Value(0.5)).current;
@@ -10,6 +13,8 @@ export default function SplashScreen() {
   const glow = useRef(new Animated.Value(0.4)).current;
   const translateY = useRef(new Animated.Value(0)).current;
   const router = useRouter();
+  const { width, height } = useWindowDimensions();
+  const glowSize = Math.max(width, height) * 1.5;
 
   useEffect(() => {
     Animated.parallel([
@@ -33,25 +38,52 @@ export default function SplashScreen() {
 
     async function decidirDestino() {
       const token = await SecureStore.getItemAsync('token');
-      setTimeout(() => {
-        router.replace(token ? '/home' : '/login');
-      }, 2200);
+
+      if (!token) {
+        setTimeout(() => router.replace('/login'), 2200);
+        return;
+      }
+
+      const lockEnabled = await isAppLockEnabled();
+      if (lockEnabled && (await isDeviceLockAvailable())) {
+        setTimeout(() => router.replace('/app-lock'), 2200);
+        return;
+      }
+
+      const dest = await resolvePostAuthRoute();
+      setTimeout(() => router.replace(dest), 2200);
     }
     decidirDestino();
   }, []);
 
   return (
     <View style={styles.screen}>
+      <View style={[StyleSheet.absoluteFill, styles.glowContainer]} pointerEvents="none">
+        <Animated.View
+          style={[
+            styles.glowCircle,
+            { width: glowSize, height: glowSize, borderRadius: glowSize / 2 },
+            { opacity: glow.interpolate({ inputRange: [0.4, 1], outputRange: [0.1, 0.22] }) },
+          ]}
+        />
+        <Animated.View
+          style={[
+            styles.glowCircle,
+            { width: glowSize * 0.72, height: glowSize * 0.72, borderRadius: (glowSize * 0.72) / 2 },
+            { opacity: glow.interpolate({ inputRange: [0.4, 1], outputRange: [0.16, 0.32] }) },
+          ]}
+        />
+        <Animated.View
+          style={[
+            styles.glowCircle,
+            { width: glowSize * 0.48, height: glowSize * 0.48, borderRadius: (glowSize * 0.48) / 2 },
+            { opacity: glow.interpolate({ inputRange: [0.4, 1], outputRange: [0.22, 0.42] }) },
+          ]}
+        />
+        <BlurView intensity={55} tint="dark" style={StyleSheet.absoluteFill} />
+      </View>
+
       <Animated.View style={[styles.logoWrapper, { opacity, transform: [{ scale }, { translateY }] }]}>
-        <Animated.View
-          style={[styles.glowOuter, { opacity: glow.interpolate({ inputRange: [0.4, 1], outputRange: [0.03, 0.08] }) }]}
-        />
-        <Animated.View
-          style={[styles.glowMiddle, { opacity: glow.interpolate({ inputRange: [0.4, 1], outputRange: [0.06, 0.14] }) }]}
-        />
-        <Animated.View
-          style={[styles.glowInner, { opacity: glow.interpolate({ inputRange: [0.4, 1], outputRange: [0.1, 0.22] }) }]}
-        />
         <Image
           source={require('../../assets/images/logo.png')}
           style={styles.logoImage}
@@ -65,25 +97,13 @@ export default function SplashScreen() {
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: Colors.background, justifyContent: 'center', alignItems: 'center' },
   logoWrapper: { justifyContent: 'center', alignItems: 'center' },
-  glowOuter: {
-    position: 'absolute',
-    width: 300,
-    height: 300,
-    borderRadius: 150,
-    backgroundColor: Colors.primary,
+  glowContainer: {
+    justifyContent: 'center',
+    alignItems: 'center',
+    overflow: 'hidden',
   },
-  glowMiddle: {
+  glowCircle: {
     position: 'absolute',
-    width: 240,
-    height: 240,
-    borderRadius: 120,
-    backgroundColor: Colors.primary,
-  },
-  glowInner: {
-    position: 'absolute',
-    width: 195,
-    height: 195,
-    borderRadius: 97.5,
     backgroundColor: Colors.primary,
   },
   logoImage: {

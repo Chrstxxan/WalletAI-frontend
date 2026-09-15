@@ -1,14 +1,19 @@
-import { useState, useCallback } from 'react';
-import { View, StyleSheet, ScrollView } from 'react-native';
-import { Text, Button, ActivityIndicator, IconButton } from 'react-native-paper';
+import { useState, useCallback, useRef } from 'react';
+import { View, StyleSheet, ScrollView, Pressable, Alert } from 'react-native';
+import { Text, Button, ActivityIndicator, IconButton, ProgressBar } from 'react-native-paper';
 import { useRouter, useFocusEffect } from 'expo-router';
-import * as SecureStore from 'expo-secure-store';
-import { PieChart, BarChart } from 'react-native-gifted-charts';
-import { getDashboard, getMe } from '@/services/api';
+import { BarChart } from 'react-native-gifted-charts';
+import * as Print from 'expo-print';
+import * as Sharing from 'expo-sharing';
+import { getDashboard, getMe, getMonthlyFixedExpenseRecords, getMonthlyIncomeRecords, getMonthSummary } from '@/services/api';
 import { GlassCard } from '@/components/GlassCard';
+import { IsometricPieChart } from '@/components/IsometricPieChart';
+import { BottomNavBar } from '@/components/BottomNavBar';
 import { Colors } from '@/constants/colors';
+import { buildMonthlyReportHtml } from '@/utils/pdfReport';
 
 type DashboardData = {
+  profile: { savingsGoal: number } | null;
   monthlyIncome: number;
   totalDespesas: number;
   totalReceitas: number;
@@ -19,40 +24,75 @@ type DashboardData = {
   percentualUsado: number;
   alerta: boolean;
   gastosPorCategoria: { categoria: string; valor: number }[];
+  orcamentosPorCategoria: { categoria: string; limite: number; gasto: number; percentualUsado: number; alerta: boolean; estourado: boolean }[];
 };
 
-const CATEGORY_COLORS = ['#1f8055', '#2ea86f', '#5fd99a', '#a8e6c9', '#e0e0e0', '#7a7a7a'];
-const DONUT_INNER_COLOR = 'rgba(0,0,0,0.35)';
+const CATEGORY_COLORS = ['#0f6b47', '#1f8055', '#155e42', '#2f7a5c', '#0b4a33', '#3a4a44'];
+const MESES = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+
+const now = new Date();
+const CURRENT_MONTH = now.getMonth() + 1;
+const CURRENT_YEAR = now.getFullYear();
 
 export default function HomeScreen() {
   const [data, setData] = useState<DashboardData | null>(null);
   const [userName, setUserName] = useState('');
   const [loading, setLoading] = useState(true);
-  const [selectedCategoria, setSelectedCategoria] = useState<{ categoria: string; valor: number } | null>(null);
+  const [selectedBarra, setSelectedBarra] = useState<{ label: string; valor: number; color: string } | null>(null);
+  const [exportingPdf, setExportingPdf] = useState(false);
+  const [reviewTotal, setReviewTotal] = useState(0);
+  const [reviewDone, setReviewDone] = useState(0);
+  const [viewMonth, setViewMonth] = useState(CURRENT_MONTH);
+  const [viewYear, setViewYear] = useState(CURRENT_YEAR);
+  const hasLoadedOnce = useRef(false);
   const router = useRouter();
+
+  const isCurrentMonth = viewMonth === CURRENT_MONTH && viewYear === CURRENT_YEAR;
 
   useFocusEffect(
     useCallback(() => {
       async function load() {
+        if (!hasLoadedOnce.current) setLoading(true);
         try {
-          const [dashboard, user] = await Promise.all([getDashboard(), getMe()]);
-          setData(dashboard);
-          setUserName(user.name || '');
-          setSelectedCategoria(null);
+          if (isCurrentMonth) {
+            const [dashboard, user, fixedExpenseRecords, incomeRecords] = await Promise.all([
+              getDashboard(), getMe(), getMonthlyFixedExpenseRecords(), getMonthlyIncomeRecords(),
+            ]);
+            setData(dashboard);
+            setUserName(user.name || '');
+            setReviewTotal(fixedExpenseRecords.length + incomeRecords.length);
+            setReviewDone(
+              fixedExpenseRecords.filter((r: any) => r.isPaid).length +
+              incomeRecords.filter((r: any) => r.isReceived).length
+            );
+          } else {
+            const [summary, user] = await Promise.all([getMonthSummary(viewMonth, viewYear), getMe()]);
+            setData(summary);
+            setUserName(user.name || '');
+            setReviewTotal(0);
+            setReviewDone(0);
+          }
+          setSelectedBarra(null);
         } finally {
+          hasLoadedOnce.current = true;
           setLoading(false);
         }
       }
       load();
-    }, [])
+    }, [viewMonth, viewYear])
   );
 
-  async function handleLogout() {
-    await SecureStore.deleteItemAsync('token');
-    router.replace('/login');
+  function goPrevMonth() {
+    setViewMonth(m => (m === 1 ? 12 : m - 1));
+    setViewYear(y => (viewMonth === 1 ? y - 1 : y));
+  }
+  function goNextMonth() {
+    if (isCurrentMonth) return;
+    setViewMonth(m => (m === 12 ? 1 : m + 1));
+    setViewYear(y => (viewMonth === 12 ? y + 1 : y));
   }
 
-  if (loading || !data) {
+  if (!data) {
     return (
       <View style={styles.screen}>
         <ActivityIndicator color={Colors.primary} style={{ marginTop: 100 }} />
@@ -62,23 +102,62 @@ export default function HomeScreen() {
 
   const estourado = data.percentualUsado >= 100;
   const usadoVisual = Math.min(data.percentualUsado, 100);
-  const corUsado = estourado ? '#FF6B6B' : data.alerta ? '#FFB74D' : Colors.primary;
+  const corUsado = estourado ? '#FF6B6B' : data.alerta ? '#E0A458' : Colors.primary;
 
-  const gaugeData = [
-    { value: usadoVisual, color: corUsado },
-    { value: 100 - usadoVisual, color: 'rgba(255,255,255,0.08)' },
-  ];
-
-  const categoriaData = data.gastosPorCategoria.map((item, index) => ({
+  const gastosPorCategoria = data.gastosPorCategoria;
+  const totalGastosCategoria = gastosPorCategoria.reduce((sum, item) => sum + item.valor, 0);
+  const categoriaData = gastosPorCategoria.map((item, index) => ({
+    label: item.categoria,
     value: item.valor,
     color: CATEGORY_COLORS[index % CATEGORY_COLORS.length],
   }));
 
   const totalDespesasCompleto = data.totalDespesas + data.fixedExpenses + data.totalFaturaCartoes;
+  const totalRecebidoCompleto = data.monthlyIncome + data.totalReceitas;
+  const saldoMes = totalRecebidoCompleto - totalDespesasCompleto;
+
+  async function handleExportPdf() {
+    if (!data) return;
+    setExportingPdf(true);
+    try {
+      const html = buildMonthlyReportHtml({
+        userName,
+        month: viewMonth,
+        year: viewYear,
+        recebido: totalRecebidoCompleto,
+        gasto: totalDespesasCompleto,
+        saldo: saldoMes,
+        categorias: gastosPorCategoria,
+        orcamentos: isCurrentMonth ? data.orcamentosPorCategoria : [],
+      });
+      const { uri } = await Print.printToFileAsync({ html });
+      if (await Sharing.isAvailableAsync()) {
+        await Sharing.shareAsync(uri, { mimeType: 'application/pdf', dialogTitle: 'Relatório WalletAI' });
+      } else {
+        Alert.alert('PDF gerado', `Arquivo salvo em:\n${uri}`);
+      }
+    } catch {
+      Alert.alert('Erro', 'Não foi possível gerar o PDF do relatório');
+    } finally {
+      setExportingPdf(false);
+    }
+  }
 
   const barData = [
-    { value: data.monthlyIncome + data.totalReceitas, label: 'Receitas', frontColor: Colors.primaryLight },
-    { value: totalDespesasCompleto, label: 'Despesas', frontColor: '#FF6B6B' },
+    {
+      value: totalRecebidoCompleto,
+      label: 'Receitas',
+      frontColor: Colors.primaryLight,
+      topLabelComponent: () => <Text style={styles.barTopLabel}>R$ {totalRecebidoCompleto.toFixed(0)}</Text>,
+      onPress: () => setSelectedBarra({ label: 'Receitas', valor: totalRecebidoCompleto, color: Colors.primaryLight }),
+    },
+    {
+      value: totalDespesasCompleto,
+      label: 'Despesas',
+      frontColor: '#FF6B6B',
+      topLabelComponent: () => <Text style={styles.barTopLabel}>R$ {totalDespesasCompleto.toFixed(0)}</Text>,
+      onPress: () => setSelectedBarra({ label: 'Despesas', valor: totalDespesasCompleto, color: '#FF6B6B' }),
+    },
   ];
 
   return (
@@ -86,53 +165,78 @@ export default function HomeScreen() {
       <View style={[styles.blob, styles.blobTop]} />
 
       <ScrollView contentContainerStyle={styles.container}>
-        <View style={styles.headerRow}>
-          <Text variant="headlineLarge" style={styles.title}>
-            Olá{userName ? `, ${userName}` : ''}! 👋
-          </Text>
-          <IconButton icon="account-circle-outline" iconColor={Colors.textPrimary} size={30} onPress={() => router.push('/profile')} />
+        <Text style={styles.title} numberOfLines={1} adjustsFontSizeToFit>
+          Bem-vindo(a){userName ? `, ${userName}` : ''}!
+        </Text>
+
+        <View style={styles.monthNav}>
+          <IconButton icon="chevron-left" iconColor={Colors.textPrimary} size={22} onPress={goPrevMonth} />
+          <Text style={styles.monthNavLabel}>{MESES[viewMonth - 1]} {viewYear}</Text>
+          <IconButton
+            icon="chevron-right"
+            iconColor={isCurrentMonth ? Colors.textSecondary : Colors.textPrimary}
+            size={22}
+            onPress={goNextMonth}
+            disabled={isCurrentMonth}
+          />
+          {loading && <ActivityIndicator color={Colors.textSecondary} size={16} style={styles.monthNavSpinner} />}
         </View>
 
-        {estourado && (
-          <GlassCard style={[styles.card, styles.alertCard]}>
-            <Text style={styles.alertTitle}>🚨 Limite mensal estourado</Text>
-            <Text style={styles.alertBody}>
-              Você já ultrapassou o limite livre em R$ {Math.abs(data.disponivel).toFixed(2)}. Reveja os gastos do mês.
-            </Text>
-          </GlassCard>
-        )}
-        {!estourado && data.alerta && (
-          <GlassCard style={[styles.card, styles.warnCard]}>
-            <Text style={styles.warnTitle}>⚠️ Perto do limite</Text>
-            <Text style={styles.warnBody}>Você já usou {data.percentualUsado}% do seu limite livre este mês.</Text>
-          </GlassCard>
-        )}
+        {isCurrentMonth ? (
+          <>
+            {estourado && (
+              <GlassCard style={[styles.card, styles.alertCard]}>
+                <Text style={styles.alertTitle}>🚨 Limite mensal estourado</Text>
+                <Text style={styles.alertBody}>
+                  Você já ultrapassou o limite livre em R$ {Math.abs(data.disponivel).toFixed(2)}. Reveja os gastos do mês.
+                </Text>
+              </GlassCard>
+            )}
+            {!estourado && data.alerta && (
+              <GlassCard style={[styles.card, styles.warnCard]}>
+                <Text style={styles.warnTitle}>⚠️ Perto do limite</Text>
+                <Text style={styles.warnBody}>Você já usou {data.percentualUsado}% do seu limite livre este mês.</Text>
+              </GlassCard>
+            )}
 
-        <GlassCard style={styles.card}>
-          <Text style={styles.label}>Disponível para gastar este mês</Text>
-          <Text style={[styles.bigNumber, { color: estourado ? '#FF6B6B' : Colors.primaryLight }]}>
-            R$ {data.disponivel.toFixed(2)}
-          </Text>
+            <GlassCard style={styles.card}>
+              <Text style={[styles.label, styles.centerText]}>Disponível para gastar este mês</Text>
+              <Text style={[styles.bigNumber, styles.centerText, { color: estourado ? '#FF6B6B' : Colors.primaryLight }]}>
+                R$ {data.disponivel.toFixed(2)}
+              </Text>
 
-          <View style={styles.chartWrapper}>
-            <PieChart
-              data={gaugeData}
-              donut
-              radius={70}
-              innerRadius={54}
-              backgroundColor="transparent"
-              innerCircleColor={DONUT_INNER_COLOR}
-              centerLabelComponent={() => (
-                <View style={{ alignItems: 'center' }}>
-                  <Text style={{ color: Colors.textPrimary, fontSize: 22, fontWeight: '800' }}>
-                    {data.percentualUsado}%
+              <View style={styles.usadoRow}>
+                <View style={styles.orcamentoHeader}>
+                  <Text style={styles.orcamentoNome}>
+                    {estourado ? '🚨 ' : data.alerta ? '⚠️ ' : ''}Usado no mês
                   </Text>
-                  <Text style={{ color: Colors.textSecondary, fontSize: 11 }}>usado</Text>
+                  <Text style={styles.orcamentoValores}>{data.percentualUsado}%</Text>
                 </View>
-              )}
-            />
-          </View>
-        </GlassCard>
+                <ProgressBar progress={usadoVisual / 100} color={corUsado} style={styles.progressBar} />
+              </View>
+            </GlassCard>
+          </>
+        ) : (
+          <>
+            <View style={styles.summaryRow}>
+              <GlassCard style={styles.summaryCard}>
+                <Text style={styles.label}>Recebido</Text>
+                <Text style={[styles.summaryValue, { color: Colors.primaryLight }]}>R$ {totalRecebidoCompleto.toFixed(2)}</Text>
+              </GlassCard>
+              <GlassCard style={styles.summaryCard}>
+                <Text style={styles.label}>Gasto</Text>
+                <Text style={[styles.summaryValue, { color: '#FF6B6B' }]}>R$ {totalDespesasCompleto.toFixed(2)}</Text>
+              </GlassCard>
+            </View>
+
+            <GlassCard style={styles.card}>
+              <Text style={styles.label}>Saldo do mês</Text>
+              <Text style={[styles.bigNumber, { color: saldoMes >= 0 ? Colors.primaryLight : '#FF6B6B' }]}>
+                R$ {saldoMes.toFixed(2)}
+              </Text>
+            </GlassCard>
+          </>
+        )}
 
         <GlassCard style={styles.card}>
           <Text style={styles.sectionTitle}>Gastos por categoria</Text>
@@ -140,68 +244,129 @@ export default function HomeScreen() {
             <Text style={styles.emptyText}>Nenhum gasto registrado este mês</Text>
           ) : (
             <>
-              <View style={styles.chartWrapper}>
-                <PieChart
-                  data={categoriaData}
-                  donut
-                  radius={80}
-                  innerRadius={50}
-                  backgroundColor="transparent"
-                  innerCircleColor={DONUT_INNER_COLOR}
-                  focusOnPress
-                  onPress={(_item: any, index: number) => setSelectedCategoria(data.gastosPorCategoria[index])}
-                />
+              <View style={[styles.chartWrapper, styles.categoriaChartWrapper]}>
+                <IsometricPieChart data={categoriaData} width={260} />
               </View>
-              <View style={styles.selectedInfo}>
-                {selectedCategoria ? (
-                  <View style={[styles.selectedChip, { backgroundColor: `${categoriaData[data.gastosPorCategoria.indexOf(selectedCategoria)]?.color ?? Colors.primary}22` }]}>
-                    <Text style={styles.selectedText}>{selectedCategoria.categoria}</Text>
-                    <Text style={styles.selectedValue}>R$ {selectedCategoria.valor.toFixed(2)}</Text>
-                  </View>
-                ) : (
-                  <Text style={styles.tapHint}>Toque em uma fatia para ver o valor</Text>
-                )}
+              <View style={styles.legendWrap}>
+                {gastosPorCategoria.map((item, index) => {
+                  const pct = totalGastosCategoria > 0 ? Math.round((item.valor / totalGastosCategoria) * 100) : 0;
+                  return (
+                    <View key={item.categoria} style={styles.legendItem}>
+                      <View style={[styles.legendDot, { backgroundColor: CATEGORY_COLORS[index % CATEGORY_COLORS.length] }]} />
+                      <Text style={styles.legendLabel}>{item.categoria}</Text>
+                      <Text style={styles.legendValue}>{pct}% · R$ {item.valor.toFixed(2)}</Text>
+                    </View>
+                  );
+                })}
               </View>
             </>
           )}
         </GlassCard>
 
+        {isCurrentMonth && data.orcamentosPorCategoria.length > 0 && (
+          <Pressable onPress={() => router.push('/category-budgets')}>
+            <GlassCard style={styles.card}>
+              <Text style={styles.sectionTitle}>Orçamento por categoria</Text>
+              {data.orcamentosPorCategoria.map((orc) => (
+                <View key={orc.categoria} style={styles.orcamentoRow}>
+                  <View style={styles.orcamentoHeader}>
+                    <Text style={styles.orcamentoNome}>
+                      {orc.estourado ? '🚨 ' : orc.alerta ? '⚠️ ' : ''}{orc.categoria}
+                    </Text>
+                    <Text style={styles.orcamentoValores}>R$ {orc.gasto.toFixed(2)} / R$ {orc.limite.toFixed(2)}</Text>
+                  </View>
+                  <ProgressBar
+                    progress={Math.min(orc.gasto / orc.limite, 1)}
+                    color={orc.estourado ? '#FF6B6B' : orc.alerta ? '#FFB74D' : Colors.primary}
+                    style={styles.progressBar}
+                  />
+                </View>
+              ))}
+              <Text style={styles.reviewHint}>Toque para ajustar os limites</Text>
+            </GlassCard>
+          </Pressable>
+        )}
+
         <GlassCard style={styles.card}>
           <Text style={styles.sectionTitle}>Receitas x Despesas</Text>
-          <View style={styles.chartWrapper}>
+          <View style={[styles.chartWrapper, styles.barChartWrapper]}>
             <BarChart
               data={barData}
-              barWidth={40}
-              spacing={40}
+              barWidth={44}
+              spacing={44}
               roundedTop
               hideRules
               xAxisColor={Colors.glassBorder}
               yAxisColor={Colors.glassBorder}
-              xAxisLabelTextStyle={{ color: Colors.textSecondary, fontSize: 12 }}
+              xAxisLabelTextStyle={{ color: Colors.textSecondary, fontSize: 12, textAlign: 'center' }}
               yAxisTextStyle={{ color: Colors.textSecondary, fontSize: 10 }}
               noOfSections={4}
+              disablePress={false}
+              overflowTop={36}
             />
           </View>
+          <View style={styles.selectedInfo}>
+            {selectedBarra ? (
+              <View style={[styles.selectedChip, { backgroundColor: `${selectedBarra.color}22` }]}>
+                <Text style={styles.selectedText}>{selectedBarra.label}</Text>
+                <Text style={styles.selectedValue}>R$ {selectedBarra.valor.toFixed(2)}</Text>
+              </View>
+            ) : (
+              <Text style={styles.tapHint}>Toque em uma barra para ver o valor exato</Text>
+            )}
+          </View>
+          {isCurrentMonth && !!data.profile?.savingsGoal && (
+            <Text style={styles.chartCaption}>
+              A diferença entre receitas e despesas aqui não desconta sua meta de economia (R$ {data.profile.savingsGoal.toFixed(2)}) — ela já está reservada no "Disponível para gastar" acima.
+            </Text>
+          )}
         </GlassCard>
 
+        {reviewTotal > 0 && (
+          <Pressable onPress={() => router.push('/monthly-review')}>
+            <GlassCard style={styles.card}>
+              <View style={styles.reviewHeader}>
+                <Text style={styles.sectionTitle}>Revisão do mês</Text>
+                <Text style={styles.reviewCount}>{reviewDone} de {reviewTotal}</Text>
+              </View>
+              <ProgressBar progress={reviewDone / reviewTotal} color={Colors.primary} style={styles.progressBar} />
+              <Text style={styles.reviewHint}>Toque para marcar contas pagas e renda recebida</Text>
+            </GlassCard>
+          </Pressable>
+        )}
+
         <View style={styles.actions}>
-          <Button mode="contained" onPress={() => router.push('/transactions')} buttonColor={Colors.primary} style={styles.button}>
+          <Button
+            mode="contained"
+            icon="format-list-bulleted"
+            onPress={() => router.push({ pathname: '/transactions', params: { month: String(viewMonth), year: String(viewYear) } })}
+            buttonColor={Colors.primary}
+            style={styles.primaryAction}
+          >
             Ver transações
           </Button>
-          <Button mode="outlined" onPress={() => router.push('/financial-profile')} textColor={Colors.primaryLight} style={styles.button}>
-            Meus dados financeiros
+          <Button
+            mode="outlined"
+            icon="file-pdf-box"
+            onPress={handleExportPdf}
+            loading={exportingPdf}
+            textColor={Colors.primaryLight}
+            style={styles.secondaryAction}
+          >
+            Exportar relatório em PDF
           </Button>
-          <Button mode="outlined" onPress={() => router.push('/credit-cards')} textColor={Colors.primaryLight} style={styles.button}>
-            Cartões de crédito
-          </Button>
-          <Button mode="outlined" onPress={() => router.push('/chat')} textColor={Colors.primaryLight} style={styles.button}>
-            Falar com a IA
-          </Button>
-          <Button mode="text" onPress={handleLogout} textColor={Colors.textSecondary} style={styles.button}>
-            Sair
-          </Button>
+          <View style={styles.moreLinksRow}>
+            <Pressable onPress={() => router.push('/financial-profile')}>
+              <Text style={styles.moreLink}>Meus dados financeiros</Text>
+            </Pressable>
+            <Pressable onPress={() => router.push('/category-budgets')}>
+              <Text style={styles.moreLink}>Orçamento por categoria</Text>
+            </Pressable>
+          </View>
         </View>
       </ScrollView>
+
+      <BottomNavBar />
     </View>
   );
 }
@@ -210,10 +375,15 @@ const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: Colors.background },
   blob: { position: 'absolute', width: 300, height: 300, borderRadius: 150, backgroundColor: Colors.primary, opacity: 0.15 },
   blobTop: { top: -100, right: -80 },
-  container: { padding: 24, paddingTop: 60, paddingBottom: 40 },
-  headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20, gap: 8 },
-  title: { color: Colors.textPrimary, fontWeight: '700', flex: 1 },
+  container: { padding: 24, paddingTop: 60, paddingBottom: 130 },
+  title: { color: Colors.textPrimary, fontWeight: '700', fontSize: 24, marginBottom: 20 },
+  monthNav: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', marginBottom: 12 },
+  monthNavLabel: { color: Colors.textPrimary, fontSize: 15, fontWeight: '700', minWidth: 140, textAlign: 'center' },
+  monthNavSpinner: { marginLeft: 4 },
   card: { marginBottom: 16 },
+  summaryRow: { flexDirection: 'row', gap: 12, marginBottom: 16 },
+  summaryCard: { flex: 1 },
+  summaryValue: { fontSize: 20, fontWeight: '800', marginTop: 4 },
   alertCard: { backgroundColor: 'rgba(255,107,107,0.12)' },
   alertTitle: { color: '#FF6B6B', fontWeight: '700', fontSize: 15, marginBottom: 4 },
   alertBody: { color: Colors.textPrimary, fontSize: 13 },
@@ -223,13 +393,35 @@ const styles = StyleSheet.create({
   label: { color: Colors.textSecondary, fontSize: 14, marginBottom: 4 },
   bigNumber: { fontSize: 32, fontWeight: '800', marginBottom: 12 },
   chartWrapper: { width: '100%', alignItems: 'center', marginTop: 8 },
-  sectionTitle: { color: Colors.textPrimary, fontSize: 16, fontWeight: '700', marginBottom: 16 },
+  categoriaChartWrapper: { marginTop: 16, marginBottom: 8 },
+  barChartWrapper: { marginTop: 24 },
+  barTopLabel: { color: Colors.textPrimary, fontSize: 12, fontWeight: '700', marginBottom: 6, textAlign: 'center' },
+  sectionTitle: { color: Colors.textPrimary, fontSize: 16, fontWeight: '700', marginBottom: 16, textAlign: 'center' },
+  centerText: { textAlign: 'center' },
   emptyText: { color: Colors.textSecondary, fontSize: 13 },
   selectedInfo: { marginTop: 16, minHeight: 40, justifyContent: 'center', alignItems: 'center', width: '100%' },
   selectedChip: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 10, paddingHorizontal: 18, borderRadius: 14 },
   selectedText: { color: Colors.textPrimary, fontSize: 14, fontWeight: '600' },
   selectedValue: { color: Colors.textPrimary, fontSize: 14, fontWeight: '800' },
   tapHint: { color: Colors.textSecondary, fontSize: 12, fontStyle: 'italic' },
-  actions: { gap: 10, marginTop: 8 },
-  button: { borderRadius: 12 },
+  chartCaption: { color: Colors.textSecondary, fontSize: 11, textAlign: 'center', marginTop: 12, lineHeight: 16 },
+  reviewHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
+  reviewCount: { color: Colors.primaryLight, fontSize: 16, fontWeight: '700' },
+  progressBar: { height: 8, borderRadius: 4, backgroundColor: Colors.inputBackground },
+  reviewHint: { color: Colors.textSecondary, fontSize: 12, marginTop: 10 },
+  orcamentoRow: { marginBottom: 12 },
+  usadoRow: { marginTop: 16 },
+  orcamentoHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 },
+  orcamentoNome: { color: Colors.textPrimary, fontSize: 14, fontWeight: '600' },
+  orcamentoValores: { color: Colors.textSecondary, fontSize: 12 },
+  actions: { marginTop: 8 },
+  primaryAction: { borderRadius: 14, paddingVertical: 4 },
+  secondaryAction: { borderRadius: 14, marginTop: 12 },
+  moreLinksRow: { flexDirection: 'row', justifyContent: 'center', gap: 20, marginTop: 20 },
+  moreLink: { color: Colors.textSecondary, fontSize: 13, fontWeight: '600', textDecorationLine: 'underline' },
+  legendWrap: { marginTop: 20, width: '100%', gap: 12 },
+  legendItem: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  legendDot: { width: 10, height: 10, borderRadius: 5 },
+  legendLabel: { color: Colors.textPrimary, fontSize: 13, fontWeight: '600', flex: 1 },
+  legendValue: { color: Colors.textSecondary, fontSize: 12, fontWeight: '600' },
 });

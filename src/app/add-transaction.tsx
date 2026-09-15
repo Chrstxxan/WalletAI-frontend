@@ -1,15 +1,19 @@
 import { useState } from 'react';
 import { View, StyleSheet, Alert } from 'react-native';
 import { TextInput, Button, Text, SegmentedButtons } from 'react-native-paper';
-import { useRouter } from 'expo-router';
-import { createTransaction } from '@/services/api';
+import { useRouter, useLocalSearchParams } from 'expo-router';
+import { createTransaction, updateTransaction } from '@/services/api';
 import { GlassCard } from '@/components/GlassCard';
+import { BackButton } from '@/components/BackButton';
 import { Colors } from '@/constants/colors';
 
 export default function AddTransactionScreen() {
-  const [amount, setAmount] = useState('');
-  const [type, setType] = useState('despesa');
-  const [description, setDescription] = useState('');
+  const params = useLocalSearchParams<{ id?: string; amount?: string; type?: string; description?: string }>();
+  const isEditing = !!params.id;
+
+  const [amount, setAmount] = useState(params.amount || '');
+  const [type, setType] = useState(params.type || 'despesa');
+  const [description, setDescription] = useState(params.description || '');
   const [loading, setLoading] = useState(false);
   const router = useRouter();
 
@@ -20,11 +24,17 @@ export default function AddTransactionScreen() {
     }
     setLoading(true);
     try {
-      const transaction = await createTransaction(parseFloat(amount.replace(',', '.')), type, description);
-      Alert.alert('Sucesso', `Categorizado como: ${transaction.category.name}`);
+      const parsedAmount = parseFloat(amount.replace(',', '.'));
+      if (isEditing) {
+        await updateTransaction(Number(params.id), parsedAmount, type, description);
+        Alert.alert('Sucesso', 'Transação atualizada!');
+      } else {
+        const transaction = await createTransaction(parsedAmount, type, description);
+        Alert.alert('Sucesso', `Categorizado como: ${transaction.category.name}`);
+      }
       router.back();
     } catch (error) {
-      Alert.alert('Erro', 'Não foi possível salvar a transação');
+      Alert.alert('Erro', isEditing ? 'Não foi possível atualizar a transação' : 'Não foi possível salvar a transação');
     } finally {
       setLoading(false);
     }
@@ -34,9 +44,10 @@ export default function AddTransactionScreen() {
     <View style={styles.screen}>
       <View style={[styles.blob, styles.blobTop]} />
       <View style={[styles.blob, styles.blobBottom]} />
+      <BackButton />
 
       <View style={styles.container}>
-        <Text variant="headlineLarge" style={styles.title}>Nova transação</Text>
+        <Text variant="headlineLarge" style={styles.title}>{isEditing ? 'Editar transação' : 'Nova transação'}</Text>
         <Text variant="bodyMedium" style={styles.subtitle}>A categoria é sugerida automaticamente pela IA</Text>
 
         <GlassCard style={styles.card}>

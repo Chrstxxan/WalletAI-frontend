@@ -12,11 +12,11 @@ export async function login(email: string, password: string) {
   return response.json();
 }
 
-export async function register(email: string, password: string) {
+export async function register(name: string, email: string, password: string) {
   const response = await fetch(`${API_URL}/auth/register`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ email, password }),
+    body: JSON.stringify({ name, email, password }),
   });
   if (!response.ok) throw new Error('Erro ao cadastrar');
   return response.json();
@@ -87,7 +87,7 @@ export async function getIncomeSources() {
   return response.json();
 }
 
-export async function updateIncomeSources(sources: { description: string; amount: number }[]) {
+export async function updateIncomeSources(sources: { id?: number; description: string; amount: number; recorrente: boolean; month?: number; year?: number }[]) {
   const response = await fetch(`${API_URL}/financial/income-sources`, {
     method: 'PUT',
     headers: await getAuthHeaders(),
@@ -106,7 +106,7 @@ export async function getFixedExpenses() {
   return response.json();
 }
 
-export async function updateFixedExpenses(items: { description: string; amount: number }[]) {
+export async function updateFixedExpenses(items: { id?: number; description: string; amount: number; recorrente: boolean; month?: number; year?: number; creditCardId?: number | null }[]) {
   const response = await fetch(`${API_URL}/financial/fixed-expenses`, {
     method: 'PUT',
     headers: await getAuthHeaders(),
@@ -122,6 +122,16 @@ export async function getDashboard() {
     headers: await getAuthHeaders(),
   });
   if (!response.ok) throw new Error('Não foi possível buscar o dashboard');
+  return response.json();
+}
+
+export async function updateTransaction(id: number, amount: number, type: string, description: string) {
+  const response = await fetch(`${API_URL}/transactions/${id}`, {
+    method: 'PUT',
+    headers: await getAuthHeaders(),
+    body: JSON.stringify({ amount, type, description }),
+  });
+  if (!response.ok) throw new Error('Não foi possível atualizar a transação');
   return response.json();
 }
 
@@ -213,5 +223,143 @@ export async function deleteInvoiceItem(id: number) {
 export async function getCreditCardSummary() {
   const response = await fetch(`${API_URL}/credit-cards/summary`, { method: 'GET', headers: await getAuthHeaders() });
   if (!response.ok) throw new Error('Não foi possível buscar o resumo dos cartões');
+  return response.json();
+}
+
+export async function getCardInvoices(cardId: number) {
+  const response = await fetch(`${API_URL}/credit-cards/${cardId}/invoices`, { method: 'GET', headers: await getAuthHeaders() });
+  if (!response.ok) throw new Error('Não foi possível buscar as faturas');
+  return response.json();
+}
+
+export async function generateMonthlyFixedExpenses() {
+  const response = await fetch(`${API_URL}/financial/fixed-expenses/generate-monthly`, {
+    method: 'POST',
+    headers: await getAuthHeaders(),
+  });
+  if (!response.ok) throw new Error('Não foi possível gerar os records mensais');
+  return response.json();
+}
+
+export async function getMonthlyFixedExpenseRecords() {
+  const response = await fetch(`${API_URL}/financial/fixed-expenses/monthly-records`, {
+    method: 'GET',
+    headers: await getAuthHeaders(),
+  });
+  if (!response.ok) throw new Error('Não foi possível buscar os records mensais');
+  return response.json();
+}
+
+export async function toggleFixedExpensePaid(id: number) {
+  const response = await fetch(`${API_URL}/financial/fixed-expenses/records/${id}/toggle-paid`, {
+    method: 'PATCH',
+    headers: await getAuthHeaders(),
+  });
+  if (!response.ok) throw new Error('Não foi possível atualizar o status');
+  return response.json();
+}
+
+export async function generateMonthlyIncome() {
+  const response = await fetch(`${API_URL}/financial/income-sources/generate-monthly`, {
+    method: 'POST',
+    headers: await getAuthHeaders(),
+  });
+  if (!response.ok) throw new Error('Não foi possível gerar os registros de renda mensais');
+  return response.json();
+}
+
+export async function getMonthlyIncomeRecords() {
+  const response = await fetch(`${API_URL}/financial/income-sources/monthly-records`, {
+    method: 'GET',
+    headers: await getAuthHeaders(),
+  });
+  if (!response.ok) throw new Error('Não foi possível buscar os registros de renda mensais');
+  return response.json();
+}
+
+export async function toggleIncomeReceived(id: number) {
+  const response = await fetch(`${API_URL}/financial/income-sources/records/${id}/toggle-received`, {
+    method: 'PATCH',
+    headers: await getAuthHeaders(),
+  });
+  if (!response.ok) throw new Error('Não foi possível atualizar o status');
+  return response.json();
+}
+
+export async function getMonthStatus() {
+  const response = await fetch(`${API_URL}/financial/month-status`, {
+    method: 'GET',
+    headers: await getAuthHeaders(),
+  });
+  if (!response.ok) throw new Error('Não foi possível verificar o status do mês');
+  return response.json();
+}
+
+export async function getMonthSummary(month: number, year: number) {
+  const response = await fetch(`${API_URL}/financial/month-summary?month=${month}&year=${year}`, {
+    method: 'GET',
+    headers: await getAuthHeaders(),
+  });
+  if (!response.ok) throw new Error('Não foi possível buscar o resumo do mês');
+  return response.json();
+}
+
+export async function acknowledgeMonth() {
+  const response = await fetch(`${API_URL}/financial/acknowledge-month`, {
+    method: 'POST',
+    headers: await getAuthHeaders(),
+  });
+  if (!response.ok) throw new Error('Não foi possível confirmar o fechamento do mês');
+  return response.json();
+}
+
+export async function getCategoryBudgets() {
+  const response = await fetch(`${API_URL}/financial/category-budgets`, {
+    method: 'GET',
+    headers: await getAuthHeaders(),
+  });
+  if (!response.ok) throw new Error('Não foi possível buscar os orçamentos por categoria');
+  return response.json();
+}
+
+export async function updateCategoryBudgets(budgets: { categoria: string; limite: number }[]) {
+  const response = await fetch(`${API_URL}/financial/category-budgets`, {
+    method: 'PUT',
+    headers: await getAuthHeaders(),
+    body: JSON.stringify({ budgets }),
+  });
+  if (!response.ok) throw new Error('Não foi possível salvar os orçamentos por categoria');
+  return response.json();
+}
+
+export async function getGoals() {
+  const response = await fetch(`${API_URL}/goals`, { method: 'GET', headers: await getAuthHeaders() });
+  if (!response.ok) throw new Error('Não foi possível buscar as metas');
+  return response.json();
+}
+
+export async function createGoal(description: string, targetAmount: number) {
+  const response = await fetch(`${API_URL}/goals`, {
+    method: 'POST',
+    headers: await getAuthHeaders(),
+    body: JSON.stringify({ description, targetAmount }),
+  });
+  if (!response.ok) throw new Error('Não foi possível criar a meta');
+  return response.json();
+}
+
+export async function updateGoal(id: number, data: { description?: string; targetAmount?: number; currentAmount?: number }) {
+  const response = await fetch(`${API_URL}/goals/${id}`, {
+    method: 'PUT',
+    headers: await getAuthHeaders(),
+    body: JSON.stringify(data),
+  });
+  if (!response.ok) throw new Error('Não foi possível atualizar a meta');
+  return response.json();
+}
+
+export async function deleteGoal(id: number) {
+  const response = await fetch(`${API_URL}/goals/${id}`, { method: 'DELETE', headers: await getAuthHeaders() });
+  if (!response.ok) throw new Error('Não foi possível excluir a meta');
   return response.json();
 }

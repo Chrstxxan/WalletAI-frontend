@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
 import { View, StyleSheet, Alert, ScrollView } from 'react-native';
-import { TextInput, Button, Text, Chip } from 'react-native-paper';
+import { TextInput, Button, Text, Chip, ActivityIndicator } from 'react-native-paper';
 import { useRouter } from 'expo-router';
 import { getCreditCards, addInvoiceItem } from '@/services/api';
 import { GlassCard } from '@/components/GlassCard';
+import { BackButton } from '@/components/BackButton';
 import { Colors } from '@/constants/colors';
 
 type Card = { id: number; name: string };
@@ -63,12 +64,18 @@ export default function AddInvoiceItemScreen() {
   }
 
   if (loadingCards) {
-    return <View style={styles.screen} />;
+    return (
+      <View style={styles.screen}>
+        <BackButton />
+        <ActivityIndicator color={Colors.primary} style={{ marginTop: 100 }} />
+      </View>
+    );
   }
 
   return (
     <View style={styles.screen}>
       <View style={[styles.blob, styles.blobTop]} />
+      <BackButton />
       <ScrollView contentContainerStyle={styles.container}>
         <Text variant="headlineLarge" style={styles.title}>Lançar item na fatura</Text>
         <Text style={styles.subtitle}>Copie exatamente como está na fatura do seu banco</Text>

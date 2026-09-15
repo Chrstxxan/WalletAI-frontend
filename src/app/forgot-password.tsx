@@ -4,6 +4,7 @@ import { TextInput, Button, Text } from 'react-native-paper';
 import { useRouter } from 'expo-router';
 import { resetPassword } from '@/services/api';
 import { GlassCard } from '@/components/GlassCard';
+import { BackButton } from '@/components/BackButton';
 import { Colors } from '@/constants/colors';
 
 export default function ForgotPasswordScreen() {
@@ -38,6 +39,7 @@ export default function ForgotPasswordScreen() {
     <View style={styles.screen}>
       <View style={[styles.blob, styles.blobTop]} />
       <View style={[styles.blob, styles.blobBottom]} />
+      <BackButton />
 
       <View style={styles.container}>
         <Text variant="headlineLarge" style={styles.title}>Redefinir senha</Text>

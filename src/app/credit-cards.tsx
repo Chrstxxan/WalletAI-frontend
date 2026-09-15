@@ -4,6 +4,7 @@ import { Text, Button, ActivityIndicator, IconButton } from 'react-native-paper'
 import { useRouter, useFocusEffect } from 'expo-router';
 import { getCreditCards, getCreditCardSummary, deleteCreditCard, deleteInvoiceItem } from '@/services/api';
 import { GlassCard } from '@/components/GlassCard';
+import { BottomNavBar } from '@/components/BottomNavBar';
 import { Colors } from '@/constants/colors';
 
 type Card = { id: number; name: string; limit: number; totalFaturaAtual: number; percentualDoLimite: number };
@@ -97,6 +98,14 @@ export default function CreditCardsScreen() {
                   </View>
                   {estourado && <Text style={styles.alertText}>🚨 Limite estourado</Text>}
                   {!estourado && perto && <Text style={styles.warnText}>⚠️ Perto do limite</Text>}
+                  <Button
+                    mode="text"
+                    onPress={() => router.push({ pathname: '/card-invoices', params: { cardId: String(card.id), cardName: card.name } })}
+                    textColor={Colors.primaryLight}
+                    style={{ alignSelf: 'flex-start', marginTop: 4 }}
+                  >
+                    Ver todas as faturas
+                  </Button>
                 </View>
               );
             })
@@ -134,6 +143,8 @@ export default function CreditCardsScreen() {
           <Text style={styles.hintText}>Cadastre um cartão primeiro para poder lançar itens.</Text>
         )}
       </ScrollView>
+
+      <BottomNavBar />
     </View>
   );
 }
@@ -142,7 +153,7 @@ const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: Colors.background },
   blob: { position: 'absolute', width: 300, height: 300, borderRadius: 150, backgroundColor: Colors.primary, opacity: 0.15 },
   blobTop: { top: -100, right: -80 },
-  container: { padding: 24, paddingTop: 60, paddingBottom: 40 },
+  container: { padding: 24, paddingTop: 60, paddingBottom: 130 },
   title: { color: Colors.textPrimary, fontWeight: '700', marginBottom: 20 },
   card: { marginBottom: 16 },
   label: { color: Colors.textSecondary, fontSize: 14, marginBottom: 4 },
