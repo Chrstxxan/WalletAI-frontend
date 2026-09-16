@@ -1,8 +1,8 @@
 import { useState, useCallback } from 'react';
 import { View, StyleSheet, ScrollView, Alert } from 'react-native';
-import { Text, Button, ActivityIndicator, IconButton } from 'react-native-paper';
+import { Text, Button, ActivityIndicator, IconButton, TextInput } from 'react-native-paper';
 import { useRouter, useFocusEffect } from 'expo-router';
-import { getCreditCards, getCreditCardSummary, deleteCreditCard, deleteInvoiceItem } from '@/services/api';
+import { getCreditCards, getCreditCardSummary, deleteCreditCard, deleteInvoiceItem, updateInvoiceItem } from '@/services/api';
 import { GlassCard } from '@/components/GlassCard';
 import { BottomNavBar } from '@/components/BottomNavBar';
 import { Colors } from '@/constants/colors';
@@ -18,6 +18,10 @@ export default function CreditCardsScreen() {
   const [cards, setCards] = useState<Card[]>([]);
   const [summary, setSummary] = useState<Summary | null>(null);
   const [loading, setLoading] = useState(true);
+  const [editingId, setEditingId] = useState<number | null>(null);
+  const [editDescription, setEditDescription] = useState('');
+  const [editAmount, setEditAmount] = useState('');
+  const [savingEdit, setSavingEdit] = useState(false);
   const router = useRouter();
 
   useFocusEffect(
@@ -54,6 +58,34 @@ export default function CreditCardsScreen() {
     ]);
   }
 
+  function startEditItem(item: Summary['itensDoMes'][number]) {
+    setEditingId(item.id);
+    setEditDescription(item.descricao);
+    setEditAmount(String(item.valorParcela));
+  }
+
+  async function saveEditItem(id: number, parcelaAtual: number, totalParcelas: number) {
+    if (!editDescription.trim() || !editAmount.trim()) {
+      Alert.alert('Erro', 'Preencha a descrição e o valor');
+      return;
+    }
+    setSavingEdit(true);
+    try {
+      await updateInvoiceItem(id, {
+        description: editDescription.trim(),
+        installmentAmount: parseFloat(editAmount.replace(',', '.')) || 0,
+        currentInstallment: parcelaAtual,
+        totalInstallments: totalParcelas,
+      });
+      setEditingId(null);
+      await refresh();
+    } catch {
+      Alert.alert('Erro', 'Não foi possível salvar as alterações');
+    } finally {
+      setSavingEdit(false);
+    }
+  }
+
   if (loading) {
     return (
       <View style={styles.screen}>
@@ -66,7 +98,7 @@ export default function CreditCardsScreen() {
     <View style={styles.screen}>
       <View style={[styles.blob, styles.blobTop]} />
 
-      <ScrollView contentContainerStyle={styles.container}>
+      <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag">
         <Text variant="headlineLarge" style={styles.title}>Cartões de crédito</Text>
 
         <GlassCard style={styles.card}>
@@ -121,17 +153,53 @@ export default function CreditCardsScreen() {
             <Text style={styles.emptyText}>Nenhum item lançado este mês.</Text>
           ) : (
             summary.itensDoMes.map((item) => (
-              <View key={item.id} style={styles.itemRow}>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.itemDesc}>{item.descricao}</Text>
-                  <Text style={styles.itemMeta}>
-                    {item.cartao} · Parcela {item.parcelaAtual}/{item.totalParcelas}
-                    {item.parcelasRestantes > 0 ? ` · Faltam ${item.parcelasRestantes}` : ' · Última parcela'}
-                  </Text>
+              editingId === item.id ? (
+                <View key={item.id} style={styles.editBlock}>
+                  <TextInput
+                    label="Descrição"
+                    value={editDescription}
+                    onChangeText={setEditDescription}
+                    mode="flat"
+                    style={styles.editInput}
+                    underlineColor="transparent"
+                    textColor={Colors.textPrimary}
+                  />
+                  <TextInput
+                    label="Valor da parcela (R$)"
+                    value={editAmount}
+                    onChangeText={setEditAmount}
+                    keyboardType="decimal-pad"
+                    mode="flat"
+                    style={styles.editInput}
+                    underlineColor="transparent"
+                    textColor={Colors.textPrimary}
+                  />
+                  <View style={styles.editActions}>
+                    <Button mode="text" onPress={() => setEditingId(null)} textColor={Colors.textSecondary}>Cancelar</Button>
+                    <Button
+                      mode="contained"
+                      onPress={() => saveEditItem(item.id, item.parcelaAtual, item.totalParcelas)}
+                      loading={savingEdit}
+                      buttonColor={Colors.primary}
+                    >
+                      Salvar
+                    </Button>
+                  </View>
                 </View>
-                <Text style={styles.itemValue}>R$ {item.valorParcela.toFixed(2)}</Text>
-                <IconButton icon="trash-can-outline" iconColor={Colors.textSecondary} size={18} onPress={() => confirmDeleteItem(item.id, item.descricao)} />
-              </View>
+              ) : (
+                <View key={item.id} style={styles.itemRow}>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.itemDesc}>{item.descricao}</Text>
+                    <Text style={styles.itemMeta}>
+                      {item.cartao} · Parcela {item.parcelaAtual}/{item.totalParcelas}
+                      {item.parcelasRestantes > 0 ? ` · Faltam ${item.parcelasRestantes}` : ' · Última parcela'}
+                    </Text>
+                  </View>
+                  <Text style={styles.itemValue}>R$ {item.valorParcela.toFixed(2)}</Text>
+                  <IconButton icon="pencil-outline" iconColor={Colors.textSecondary} size={18} onPress={() => startEditItem(item)} />
+                  <IconButton icon="trash-can-outline" iconColor={Colors.textSecondary} size={18} onPress={() => confirmDeleteItem(item.id, item.descricao)} />
+                </View>
+              )
             ))
           )}
         </GlassCard>
@@ -154,7 +222,7 @@ const styles = StyleSheet.create({
   blob: { position: 'absolute', width: 300, height: 300, borderRadius: 150, backgroundColor: Colors.primary, opacity: 0.15 },
   blobTop: { top: -100, right: -80 },
   container: { padding: 24, paddingTop: 60, paddingBottom: 130 },
-  title: { color: Colors.textPrimary, fontWeight: '700', marginBottom: 20 },
+  title: { color: Colors.textPrimary, fontWeight: '700', marginBottom: 20, textAlign: 'center' },
   card: { marginBottom: 16 },
   label: { color: Colors.textSecondary, fontSize: 14, marginBottom: 4 },
   bigNumber: { color: Colors.primaryLight, fontSize: 28, fontWeight: '800', marginBottom: 8 },
@@ -173,6 +241,9 @@ const styles = StyleSheet.create({
   itemDesc: { color: Colors.textPrimary, fontSize: 14, fontWeight: '600' },
   itemMeta: { color: Colors.textSecondary, fontSize: 12, marginTop: 2 },
   itemValue: { color: Colors.textPrimary, fontSize: 14, fontWeight: '700', marginRight: 4 },
+  editBlock: { paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: Colors.glassBorder },
+  editInput: { backgroundColor: Colors.inputBackground, marginBottom: 8, borderRadius: 12 },
+  editActions: { flexDirection: 'row', justifyContent: 'flex-end', gap: 8, marginTop: 4 },
   fab: { borderRadius: 12, marginTop: 8 },
   hintText: { color: Colors.textSecondary, fontSize: 12, textAlign: 'center', marginTop: 8 },
 });

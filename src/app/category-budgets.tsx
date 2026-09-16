@@ -72,7 +72,7 @@ export default function CategoryBudgetsScreen() {
       <View style={[styles.blob, styles.blobTop]} />
       <BackButton />
 
-      <ScrollView contentContainerStyle={styles.container}>
+      <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag">
         <Text variant="headlineLarge" style={styles.title}>Orçamento por categoria</Text>
         <View style={styles.monthBadge}>
           <Text style={styles.monthBadgeText}>Sempre reflete {MES_ATUAL_LABEL} (mês atual)</Text>

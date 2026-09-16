@@ -166,7 +166,7 @@ export default function FinancialProfileScreen() {
       <View style={[styles.blob, styles.blobTop]} />
       <BackButton />
 
-      <ScrollView contentContainerStyle={styles.container}>
+      <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag">
         <Text variant="headlineLarge" style={styles.title}>Meus dados financeiros</Text>
         <Text variant="bodyMedium" style={styles.subtitle}>Usados para calcular quanto você pode gastar</Text>
 

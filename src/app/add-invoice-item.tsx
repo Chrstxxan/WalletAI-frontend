@@ -76,7 +76,7 @@ export default function AddInvoiceItemScreen() {
     <View style={styles.screen}>
       <View style={[styles.blob, styles.blobTop]} />
       <BackButton />
-      <ScrollView contentContainerStyle={styles.container}>
+      <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag">
         <Text variant="headlineLarge" style={styles.title}>Lançar item na fatura</Text>
         <Text style={styles.subtitle}>Copie exatamente como está na fatura do seu banco</Text>
 

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { View, StyleSheet, Alert } from 'react-native';
+import { View, StyleSheet, Alert, KeyboardAvoidingView, ScrollView, Platform } from 'react-native';
 import { TextInput, Button, Text } from 'react-native-paper';
 import { useRouter } from 'expo-router';
 import { resetPassword } from '@/services/api';
@@ -41,7 +41,8 @@ export default function ForgotPasswordScreen() {
       <View style={[styles.blob, styles.blobBottom]} />
       <BackButton />
 
-      <View style={styles.container}>
+      <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+        <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag">
         <Text variant="headlineLarge" style={styles.title}>Redefinir senha</Text>
         <Text variant="bodyMedium" style={styles.subtitle}>Informe seu email e a nova senha</Text>
 
@@ -51,7 +52,10 @@ export default function ForgotPasswordScreen() {
             value={email}
             onChangeText={setEmail}
             autoCapitalize="none"
+            autoCorrect={false}
             keyboardType="email-address"
+            textContentType="emailAddress"
+            autoComplete="email"
             mode="flat"
             style={styles.input}
             underlineColor="transparent"
@@ -62,6 +66,10 @@ export default function ForgotPasswordScreen() {
             value={newPassword}
             onChangeText={setNewPassword}
             secureTextEntry
+            autoCapitalize="none"
+            autoCorrect={false}
+            textContentType="newPassword"
+            autoComplete="new-password"
             mode="flat"
             style={styles.input}
             underlineColor="transparent"
@@ -72,6 +80,10 @@ export default function ForgotPasswordScreen() {
             value={confirmPassword}
             onChangeText={setConfirmPassword}
             secureTextEntry
+            autoCapitalize="none"
+            autoCorrect={false}
+            textContentType="newPassword"
+            autoComplete="new-password"
             mode="flat"
             style={styles.input}
             underlineColor="transparent"
@@ -82,17 +94,19 @@ export default function ForgotPasswordScreen() {
             Redefinir senha
           </Button>
         </GlassCard>
-      </View>
+        </ScrollView>
+      </KeyboardAvoidingView>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: Colors.background, overflow: 'hidden' },
+  flex: { flex: 1 },
   blob: { position: 'absolute', width: 300, height: 300, borderRadius: 150, backgroundColor: Colors.primary, opacity: 0.25 },
   blobTop: { top: -100, right: -80 },
   blobBottom: { bottom: -80, left: -100 },
-  container: { flex: 1, justifyContent: 'center', padding: 24 },
+  container: { flexGrow: 1, justifyContent: 'center', padding: 24 },
   title: { textAlign: 'center', color: Colors.textPrimary, fontWeight: '700' },
   subtitle: { textAlign: 'center', color: Colors.textSecondary, marginBottom: 32 },
   card: { marginTop: 8 },

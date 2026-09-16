@@ -1,13 +1,16 @@
 import { getMonthStatus } from '@/services/api';
+import { consumePendingReturnRoute } from '@/utils/appLock';
 
 export type PostAuthRoute =
-  | { pathname: '/home' }
+  | { pathname: string }
   | { pathname: '/month-closing'; params: { month: string; year: string } };
 
 export async function resolvePostAuthRoute(): Promise<PostAuthRoute> {
   try {
     const status = await getMonthStatus();
     if (status.needsClosing) {
+      // fechamento de mês tem prioridade sobre voltar pra tela anterior
+      consumePendingReturnRoute();
       return {
         pathname: '/month-closing',
         params: { month: String(status.lastSeenMonth), year: String(status.lastSeenYear) },
@@ -16,5 +19,6 @@ export async function resolvePostAuthRoute(): Promise<PostAuthRoute> {
   } catch {
     // se a checagem falhar, cai no destino padrão
   }
-  return { pathname: '/home' };
+  const returnTo = consumePendingReturnRoute();
+  return { pathname: returnTo || '/home' };
 }

@@ -37,6 +37,20 @@ export function isAppLockGateSuppressed() {
   return Date.now() < suppressGateUntil;
 }
 
+// Guarda a tela em que o usuário estava quando o app foi pra segundo plano e a trava
+// disparou, pra devolver ele lá depois de desbloquear (em vez de sempre cair na home).
+let pendingReturnRoute: string | null = null;
+
+export function setPendingReturnRoute(route: string | null) {
+  pendingReturnRoute = route;
+}
+
+export function consumePendingReturnRoute(): string | null {
+  const route = pendingReturnRoute;
+  pendingReturnRoute = null;
+  return route;
+}
+
 export async function unlockWithDeviceAuth(): Promise<boolean> {
   suppressAppLockGateFor(8000);
   try {

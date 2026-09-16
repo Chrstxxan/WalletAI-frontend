@@ -19,7 +19,7 @@ export default function AppLockScreen() {
       const success = await unlockWithDeviceAuth();
       if (success) {
         const dest = await resolvePostAuthRoute();
-        router.replace(dest);
+        router.replace(dest as any);
       } else {
         setFailed(true);
       }

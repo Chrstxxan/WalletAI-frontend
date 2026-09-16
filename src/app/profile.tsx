@@ -112,7 +112,7 @@ export default function ProfileScreen() {
     <View style={styles.screen}>
       <View style={[styles.blob, styles.blobTop]} />
 
-      <ScrollView contentContainerStyle={styles.container}>
+      <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag">
         <Text variant="headlineLarge" style={styles.title}>Minha conta</Text>
 
         <GlassCard style={styles.card}>
@@ -149,6 +149,10 @@ export default function ProfileScreen() {
             value={newPassword}
             onChangeText={setNewPassword}
             secureTextEntry
+            autoCapitalize="none"
+            autoCorrect={false}
+            textContentType="newPassword"
+            autoComplete="new-password"
             mode="flat"
             style={styles.input}
             underlineColor="transparent"
@@ -181,6 +185,10 @@ export default function ProfileScreen() {
 
         <Button mode="outlined" onPress={() => router.push('/financial-profile')} textColor={Colors.primaryLight} style={styles.linkButton}>
           Meus dados financeiros
+        </Button>
+
+        <Button mode="outlined" onPress={() => router.push('/benefit-wallets')} textColor={Colors.primaryLight} style={styles.linkButton}>
+          Benefícios de trabalho
         </Button>
 
         <Button mode="text" onPress={confirmLogout} textColor={Colors.textSecondary} style={styles.logoutButton}>

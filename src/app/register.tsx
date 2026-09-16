@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { View, StyleSheet, Alert } from 'react-native';
+import { View, StyleSheet, Alert, KeyboardAvoidingView, ScrollView, Platform } from 'react-native';
 import { TextInput, Button, Text } from 'react-native-paper';
 import { useRouter } from 'expo-router';
 import { register } from '@/services/api';
@@ -41,7 +41,8 @@ export default function RegisterScreen() {
       <View style={[styles.blob, styles.blobBottom]} />
       <BackButton />
 
-      <View style={styles.container}>
+      <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+        <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag">
         <Text variant="headlineLarge" style={styles.title}>Criar conta</Text>
         <Text variant="bodyMedium" style={styles.subtitle}>Comece a organizar suas finanças</Text>
 
@@ -50,6 +51,8 @@ export default function RegisterScreen() {
             label="Nome"
             value={name}
             onChangeText={setName}
+            textContentType="name"
+            autoComplete="name"
             mode="flat"
             style={styles.input}
             underlineColor="transparent"
@@ -60,7 +63,10 @@ export default function RegisterScreen() {
             value={email}
             onChangeText={setEmail}
             autoCapitalize="none"
+            autoCorrect={false}
             keyboardType="email-address"
+            textContentType="emailAddress"
+            autoComplete="email"
             mode="flat"
             style={styles.input}
             underlineColor="transparent"
@@ -71,6 +77,10 @@ export default function RegisterScreen() {
             value={password}
             onChangeText={setPassword}
             secureTextEntry
+            autoCapitalize="none"
+            autoCorrect={false}
+            textContentType="newPassword"
+            autoComplete="new-password"
             mode="flat"
             style={styles.input}
             underlineColor="transparent"
@@ -81,17 +91,19 @@ export default function RegisterScreen() {
             Cadastrar
           </Button>
         </GlassCard>
-      </View>
+        </ScrollView>
+      </KeyboardAvoidingView>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: Colors.background, overflow: 'hidden' },
+  flex: { flex: 1 },
   blob: { position: 'absolute', width: 300, height: 300, borderRadius: 150, backgroundColor: Colors.primary, opacity: 0.25 },
   blobTop: { top: -100, right: -80 },
   blobBottom: { bottom: -80, left: -100 },
-  container: { flex: 1, justifyContent: 'center', padding: 24 },
+  container: { flexGrow: 1, justifyContent: 'center', padding: 24 },
   title: { textAlign: 'center', color: Colors.textPrimary, fontWeight: '700' },
   subtitle: { textAlign: 'center', color: Colors.textSecondary, marginBottom: 32 },
   card: { marginTop: 8 },

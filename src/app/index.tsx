@@ -51,7 +51,7 @@ export default function SplashScreen() {
       }
 
       const dest = await resolvePostAuthRoute();
-      setTimeout(() => router.replace(dest), 2200);
+      setTimeout(() => router.replace(dest as any), 2200);
     }
     decidirDestino();
   }, []);

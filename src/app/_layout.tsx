@@ -1,10 +1,10 @@
 import { useEffect, useRef } from 'react';
 import { AppState, AppStateStatus } from 'react-native';
-import { Stack, useRouter, useSegments } from 'expo-router';
+import { Stack, useRouter, useSegments, usePathname } from 'expo-router';
 import { PaperProvider, MD3DarkTheme } from 'react-native-paper';
 import * as SecureStore from 'expo-secure-store';
 import { Colors } from '@/constants/colors';
-import { isAppLockEnabled, isDeviceLockAvailable, isAppLockGateSuppressed } from '@/utils/appLock';
+import { isAppLockEnabled, isDeviceLockAvailable, isAppLockGateSuppressed, setPendingReturnRoute } from '@/utils/appLock';
 
 const theme = {
   ...MD3DarkTheme,
@@ -21,9 +21,12 @@ const ROUTES_SEM_TRAVA = ['login', 'register', 'forgot-password', 'app-lock', un
 function useAppLockGate() {
   const router = useRouter();
   const segments = useSegments();
+  const pathname = usePathname();
   const appState = useRef<AppStateStatus>(AppState.currentState);
   const segmentsRef = useRef(segments);
   segmentsRef.current = segments;
+  const pathnameRef = useRef(pathname);
+  pathnameRef.current = pathname;
 
   useEffect(() => {
     const subscription = AppState.addEventListener('change', async (nextState) => {
@@ -43,6 +46,9 @@ function useAppLockGate() {
       const token = await SecureStore.getItemAsync('token');
       if (!token) return;
 
+      // guarda a tela atual pra devolver o usuário nela depois de desbloquear,
+      // em vez de sempre reiniciar na home
+      setPendingReturnRoute(pathnameRef.current);
       router.replace('/app-lock');
     });
     return () => subscription.remove();

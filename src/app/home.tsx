@@ -5,7 +5,7 @@ import { useRouter, useFocusEffect } from 'expo-router';
 import { BarChart } from 'react-native-gifted-charts';
 import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
-import { getDashboard, getMe, getMonthlyFixedExpenseRecords, getMonthlyIncomeRecords, getMonthSummary } from '@/services/api';
+import { getDashboard, getMe, getMonthlyFixedExpenseRecords, getMonthlyIncomeRecords, getMonthSummary, getBenefitWallets } from '@/services/api';
 import { GlassCard } from '@/components/GlassCard';
 import { IsometricPieChart } from '@/components/IsometricPieChart';
 import { BottomNavBar } from '@/components/BottomNavBar';
@@ -34,6 +34,11 @@ const now = new Date();
 const CURRENT_MONTH = now.getMonth() + 1;
 const CURRENT_YEAR = now.getFullYear();
 
+// módulo (não componente) pra sobreviver a remounts da home ao navegar pela navbar —
+// o alerta de revisão pendente deve aparecer só uma vez por sessão do app, não toda
+// vez que a tela home é montada de novo.
+let hasShownReviewReminderThisSession = false;
+
 export default function HomeScreen() {
   const [data, setData] = useState<DashboardData | null>(null);
   const [userName, setUserName] = useState('');
@@ -42,6 +47,7 @@ export default function HomeScreen() {
   const [exportingPdf, setExportingPdf] = useState(false);
   const [reviewTotal, setReviewTotal] = useState(0);
   const [reviewDone, setReviewDone] = useState(0);
+  const [benefitWallets, setBenefitWallets] = useState<{ id: number; type: string; balance: number; gastoNoMes: number }[]>([]);
   const [viewMonth, setViewMonth] = useState(CURRENT_MONTH);
   const [viewYear, setViewYear] = useState(CURRENT_YEAR);
   const hasLoadedOnce = useRef(false);
@@ -52,25 +58,41 @@ export default function HomeScreen() {
   useFocusEffect(
     useCallback(() => {
       async function load() {
-        if (!hasLoadedOnce.current) setLoading(true);
+        const isFirstLoadOfSession = !hasLoadedOnce.current;
+        if (isFirstLoadOfSession) setLoading(true);
         try {
           if (isCurrentMonth) {
-            const [dashboard, user, fixedExpenseRecords, incomeRecords] = await Promise.all([
-              getDashboard(), getMe(), getMonthlyFixedExpenseRecords(), getMonthlyIncomeRecords(),
+            const [dashboard, user, fixedExpenseRecords, incomeRecords, wallets] = await Promise.all([
+              getDashboard(), getMe(), getMonthlyFixedExpenseRecords(), getMonthlyIncomeRecords(), getBenefitWallets(),
             ]);
             setData(dashboard);
             setUserName(user.name || '');
-            setReviewTotal(fixedExpenseRecords.length + incomeRecords.length);
-            setReviewDone(
+            setBenefitWallets(wallets);
+            const total = fixedExpenseRecords.length + incomeRecords.length;
+            const done =
               fixedExpenseRecords.filter((r: any) => r.isPaid).length +
-              incomeRecords.filter((r: any) => r.isReceived).length
-            );
+              incomeRecords.filter((r: any) => r.isReceived).length;
+            setReviewTotal(total);
+            setReviewDone(done);
+
+            if (isFirstLoadOfSession && !hasShownReviewReminderThisSession && total > 0 && done < total) {
+              hasShownReviewReminderThisSession = true;
+              Alert.alert(
+                'Revisão do mês pendente',
+                `Você ainda tem ${total - done} ${total - done === 1 ? 'item' : 'itens'} pra revisar em "${MESES[viewMonth - 1]}".`,
+                [
+                  { text: 'Depois', style: 'cancel' },
+                  { text: 'Revisar agora', onPress: () => router.push('/monthly-review') },
+                ]
+              );
+            }
           } else {
             const [summary, user] = await Promise.all([getMonthSummary(viewMonth, viewYear), getMe()]);
             setData(summary);
             setUserName(user.name || '');
             setReviewTotal(0);
             setReviewDone(0);
+            setBenefitWallets([]);
           }
           setSelectedBarra(null);
         } finally {
@@ -287,6 +309,37 @@ export default function HomeScreen() {
           </Pressable>
         )}
 
+        {isCurrentMonth && benefitWallets.length > 0 && (
+          <Pressable onPress={() => router.push('/benefit-wallets')}>
+            <GlassCard style={styles.card}>
+              <Text style={styles.sectionTitle}>Benefícios de trabalho</Text>
+              {benefitWallets.map((wallet) => {
+                const totalDisponivel = wallet.balance + wallet.gastoNoMes;
+                const progresso = totalDisponivel > 0 ? Math.min(wallet.gastoNoMes / totalDisponivel, 1) : 0;
+                const percentualUsado = Math.round(progresso * 100);
+                const estourado = totalDisponivel > 0 && wallet.balance <= 0;
+                const alerta = !estourado && percentualUsado >= 80;
+                return (
+                  <View key={wallet.id} style={styles.orcamentoRow}>
+                    <View style={styles.orcamentoHeader}>
+                      <Text style={styles.orcamentoNome}>
+                        {estourado ? '🚨 ' : alerta ? '⚠️ ' : ''}{wallet.type}
+                      </Text>
+                      <Text style={styles.orcamentoValores}>R$ {wallet.gastoNoMes.toFixed(2)} / R$ {totalDisponivel.toFixed(2)}</Text>
+                    </View>
+                    <ProgressBar
+                      progress={progresso}
+                      color={estourado ? '#FF6B6B' : alerta ? '#FFB74D' : Colors.primary}
+                      style={styles.progressBar}
+                    />
+                  </View>
+                );
+              })}
+              <Text style={styles.reviewHint}>Toque para ver detalhes e adicionar saldo</Text>
+            </GlassCard>
+          </Pressable>
+        )}
+
         <GlassCard style={styles.card}>
           <Text style={styles.sectionTitle}>Receitas x Despesas</Text>
           <View style={[styles.chartWrapper, styles.barChartWrapper]}>
@@ -362,6 +415,9 @@ export default function HomeScreen() {
             <Pressable onPress={() => router.push('/category-budgets')}>
               <Text style={styles.moreLink}>Orçamento por categoria</Text>
             </Pressable>
+            <Pressable onPress={() => router.push('/benefit-wallets')}>
+              <Text style={styles.moreLink}>Benefícios de trabalho</Text>
+            </Pressable>
           </View>
         </View>
       </ScrollView>
@@ -376,7 +432,7 @@ const styles = StyleSheet.create({
   blob: { position: 'absolute', width: 300, height: 300, borderRadius: 150, backgroundColor: Colors.primary, opacity: 0.15 },
   blobTop: { top: -100, right: -80 },
   container: { padding: 24, paddingTop: 60, paddingBottom: 130 },
-  title: { color: Colors.textPrimary, fontWeight: '700', fontSize: 24, marginBottom: 20 },
+  title: { color: Colors.textPrimary, fontWeight: '700', fontSize: 24, marginBottom: 20, textAlign: 'center' },
   monthNav: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', marginBottom: 12 },
   monthNavLabel: { color: Colors.textPrimary, fontSize: 15, fontWeight: '700', minWidth: 140, textAlign: 'center' },
   monthNavSpinner: { marginLeft: 4 },
@@ -417,7 +473,7 @@ const styles = StyleSheet.create({
   actions: { marginTop: 8 },
   primaryAction: { borderRadius: 14, paddingVertical: 4 },
   secondaryAction: { borderRadius: 14, marginTop: 12 },
-  moreLinksRow: { flexDirection: 'row', justifyContent: 'center', gap: 20, marginTop: 20 },
+  moreLinksRow: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: 16, marginTop: 20 },
   moreLink: { color: Colors.textSecondary, fontSize: 13, fontWeight: '600', textDecorationLine: 'underline' },
   legendWrap: { marginTop: 20, width: '100%', gap: 12 },
   legendItem: { flexDirection: 'row', alignItems: 'center', gap: 10 },

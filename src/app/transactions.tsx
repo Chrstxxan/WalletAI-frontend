@@ -16,6 +16,7 @@ type Transaction = {
   description: string;
   date: string;
   category: { name: string };
+  benefitWallet: { id: number; type: string } | null;
 };
 
 const MESES = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
@@ -47,14 +48,17 @@ export default function TransactionsScreen() {
     setViewYear(y => (viewMonth === 12 ? y + 1 : y));
   }
 
+  const isSearching = search.trim().length > 0;
+
   const filteredTransactions = useMemo(() => {
     const query = search.trim().toLowerCase();
     return transactions.filter((t) => {
-      const txDate = new Date(t.date);
-      const matchesMonth = txDate.getMonth() + 1 === viewMonth && txDate.getFullYear() === viewYear;
       const matchesType = typeFilter === 'todas' || t.type === typeFilter;
       const matchesQuery = !query || t.description.toLowerCase().includes(query) || t.category.name.toLowerCase().includes(query);
-      return matchesMonth && matchesType && matchesQuery;
+      if (!matchesType || !matchesQuery) return false;
+      if (query) return true; // com busca ativa, procura em todos os meses, não só no selecionado
+      const txDate = new Date(t.date);
+      return txDate.getMonth() + 1 === viewMonth && txDate.getFullYear() === viewYear;
     });
   }, [transactions, search, typeFilter, viewMonth, viewYear]);
 
@@ -128,6 +132,7 @@ export default function TransactionsScreen() {
           textColor={Colors.textPrimary}
           left={<TextInput.Icon icon="magnify" color={Colors.textSecondary} />}
         />
+        {isSearching && <Text style={styles.searchHint}>Buscando em todos os meses</Text>}
 
         <View style={styles.filterRow}>
           {(['todas', 'despesa', 'receita'] as TypeFilter[]).map((f) => (
@@ -147,28 +152,48 @@ export default function TransactionsScreen() {
           <ActivityIndicator color={Colors.primary} style={{ marginTop: 40 }} />
         ) : (
           <FlatList
+            keyboardShouldPersistTaps="handled"
+            keyboardDismissMode="on-drag"
             data={filteredTransactions}
             keyExtractor={(item) => String(item.id)}
             refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={Colors.primary} />}
             ListEmptyComponent={
               <Text style={styles.emptyText}>
-                {isCurrentMonth
-                  ? (transactions.length === 0 ? 'Nenhuma transação ainda. Adicione a primeira!' : 'Nenhuma transação encontrada.')
-                  : 'Nenhuma transação nesse mês.'}
+                {isSearching
+                  ? 'Nenhuma transação encontrada.'
+                  : isCurrentMonth
+                    ? (transactions.length === 0 ? 'Nenhuma transação ainda. Adicione a primeira!' : 'Nenhuma transação encontrada.')
+                    : 'Nenhuma transação nesse mês.'}
               </Text>
             }
             renderItem={({ item }) => (
               <Pressable
                 onPress={() => router.push({
                   pathname: '/add-transaction',
-                  params: { id: String(item.id), amount: String(item.amount), type: item.type, description: item.description },
+                  params: {
+                    id: String(item.id),
+                    amount: String(item.amount),
+                    type: item.type,
+                    description: item.description,
+                    benefitWalletId: item.benefitWallet ? String(item.benefitWallet.id) : '',
+                  },
                 })}
               >
                 <GlassCard style={styles.item}>
                   <View style={styles.itemRow}>
                     <View style={{ flex: 1 }}>
-                      <Text style={styles.itemDescription}>{item.description}</Text>
-                      <Text style={styles.itemCategory}>{item.category.name}</Text>
+                      <View style={styles.itemDescriptionRow}>
+                        <Text style={styles.itemDescription}>{item.description}</Text>
+                        {item.benefitWallet && (
+                          <View style={styles.benefitTag}>
+                            <Text style={styles.benefitTagText}>{item.benefitWallet.type}</Text>
+                          </View>
+                        )}
+                      </View>
+                      <Text style={styles.itemCategory}>
+                        {item.category.name}
+                        {isSearching ? ` · ${new Date(item.date).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' })}` : ''}
+                      </Text>
                     </View>
                     <Text style={[styles.itemAmount, { color: item.type === 'receita' ? Colors.primaryLight : '#FF6B6B' }]}>
                       {item.type === 'receita' ? '+' : '-'} R$ {item.amount.toFixed(2)}
@@ -203,16 +228,20 @@ const styles = StyleSheet.create({
   blob: { position: 'absolute', width: 300, height: 300, borderRadius: 150, backgroundColor: Colors.primary, opacity: 0.2 },
   blobTop: { top: -100, right: -80 },
   container: { flex: 1, paddingHorizontal: 24, paddingTop: 60, paddingBottom: 100 },
-  title: { color: Colors.textPrimary, fontWeight: '700', marginBottom: 4 },
+  title: { color: Colors.textPrimary, fontWeight: '700', marginBottom: 4, textAlign: 'center' },
   monthNav: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', marginBottom: 12 },
   monthNavLabel: { color: Colors.textPrimary, fontSize: 15, fontWeight: '700', minWidth: 140, textAlign: 'center' },
-  searchInput: { backgroundColor: Colors.inputBackground, borderRadius: 12, marginBottom: 12 },
+  searchInput: { backgroundColor: Colors.inputBackground, borderRadius: 12, marginBottom: 4 },
+  searchHint: { color: Colors.textSecondary, fontSize: 11, fontStyle: 'italic', marginBottom: 12 },
   filterRow: { flexDirection: 'row', gap: 8, marginBottom: 16 },
   chip: { backgroundColor: Colors.inputBackground },
   chipSelected: { backgroundColor: `${Colors.primary}33` },
   item: { marginBottom: 12 },
   itemRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  itemDescriptionRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   itemDescription: { color: Colors.textPrimary, fontSize: 16, fontWeight: '600' },
+  benefitTag: { backgroundColor: `${Colors.primary}33`, borderRadius: 6, paddingHorizontal: 6, paddingVertical: 2 },
+  benefitTagText: { color: Colors.primaryLight, fontSize: 10, fontWeight: '700' },
   itemCategory: { color: Colors.textSecondary, fontSize: 13, marginTop: 2 },
   itemAmount: { fontSize: 16, fontWeight: '700' },
   emptyText: { color: Colors.textSecondary, textAlign: 'center', marginTop: 40 },

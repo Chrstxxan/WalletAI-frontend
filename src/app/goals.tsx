@@ -111,7 +111,7 @@ export default function GoalsScreen() {
     <View style={styles.screen}>
       <View style={[styles.blob, styles.blobTop]} />
 
-      <ScrollView contentContainerStyle={styles.container}>
+      <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag">
         <Text variant="headlineLarge" style={styles.title}>Metas financeiras</Text>
         <Text variant="bodyMedium" style={styles.subtitle}>Acompanhe o progresso dos seus objetivos</Text>
 

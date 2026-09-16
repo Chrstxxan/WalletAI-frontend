@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { View, StyleSheet, Alert } from 'react-native';
+import { View, StyleSheet, Alert, KeyboardAvoidingView, ScrollView, Platform } from 'react-native';
 import { TextInput, Button, Text } from 'react-native-paper';
 import { useRouter } from 'expo-router';
 import * as SecureStore from 'expo-secure-store';
@@ -52,7 +52,8 @@ export default function LoginScreen() {
       <View style={[styles.blob, styles.blobTop]} />
       <View style={[styles.blob, styles.blobBottom]} />
 
-      <View style={styles.container}>
+      <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+        <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag">
         <Text variant="headlineLarge" style={styles.title}>WalletAI</Text>
         <Text variant="bodyMedium" style={styles.subtitle}>Gestão financeira inteligente</Text>
 
@@ -62,7 +63,10 @@ export default function LoginScreen() {
             value={email}
             onChangeText={setEmail}
             autoCapitalize="none"
+            autoCorrect={false}
             keyboardType="email-address"
+            textContentType="emailAddress"
+            autoComplete="email"
             mode="flat"
             style={styles.input}
             underlineColor="transparent"
@@ -73,6 +77,10 @@ export default function LoginScreen() {
             value={password}
             onChangeText={setPassword}
             secureTextEntry
+            autoCapitalize="none"
+            autoCorrect={false}
+            textContentType="password"
+            autoComplete="current-password"
             mode="flat"
             style={styles.input}
             underlineColor="transparent"
@@ -91,17 +99,19 @@ export default function LoginScreen() {
             Esqueceu a senha?
           </Button>
         </GlassCard>
-      </View>
+        </ScrollView>
+      </KeyboardAvoidingView>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: Colors.background, overflow: 'hidden' },
+  flex: { flex: 1 },
   blob: { position: 'absolute', width: 300, height: 300, borderRadius: 150, backgroundColor: Colors.primary, opacity: 0.25 },
   blobTop: { top: -100, right: -80 },
   blobBottom: { bottom: -80, left: -100 },
-  container: { flex: 1, justifyContent: 'center', padding: 24 },
+  container: { flexGrow: 1, justifyContent: 'center', padding: 24 },
   title: { textAlign: 'center', color: Colors.textPrimary, fontWeight: '700' },
   subtitle: { textAlign: 'center', color: Colors.textSecondary, marginBottom: 32 },
   card: { marginTop: 8 },

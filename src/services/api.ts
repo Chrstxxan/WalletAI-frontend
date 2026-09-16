@@ -40,13 +40,16 @@ async function getAuthHeaders() {
   };
 }
 
-export async function createTransaction(amount: number, type: string, description: string) {
+export async function createTransaction(amount: number, type: string, description: string, benefitWalletId?: number | null) {
   const response = await fetch(`${API_URL}/transactions`, {
     method: 'POST',
     headers: await getAuthHeaders(),
-    body: JSON.stringify({ amount, type, description }),
+    body: JSON.stringify({ amount, type, description, benefitWalletId }),
   });
-  if (!response.ok) throw new Error('Não foi possível criar a transação');
+  if (!response.ok) {
+    const data = await response.json().catch(() => null);
+    throw new Error(data?.mensagem || data?.error || 'Não foi possível criar a transação');
+  }
   return response.json();
 }
 
@@ -125,13 +128,16 @@ export async function getDashboard() {
   return response.json();
 }
 
-export async function updateTransaction(id: number, amount: number, type: string, description: string) {
+export async function updateTransaction(id: number, amount: number, type: string, description: string, benefitWalletId?: number | null) {
   const response = await fetch(`${API_URL}/transactions/${id}`, {
     method: 'PUT',
     headers: await getAuthHeaders(),
-    body: JSON.stringify({ amount, type, description }),
+    body: JSON.stringify({ amount, type, description, benefitWalletId }),
   });
-  if (!response.ok) throw new Error('Não foi possível atualizar a transação');
+  if (!response.ok) {
+    const data = await response.json().catch(() => null);
+    throw new Error(data?.mensagem || data?.error || 'Não foi possível atualizar a transação');
+  }
   return response.json();
 }
 
@@ -211,6 +217,16 @@ export async function addInvoiceItem(cardId: number, month: number, year: number
     body: JSON.stringify({ month, year, description, installmentAmount, currentInstallment, totalInstallments }),
   });
   if (!response.ok) throw new Error('Não foi possível adicionar o item');
+  return response.json();
+}
+
+export async function updateInvoiceItem(id: number, data: { description: string; installmentAmount: number; currentInstallment: number; totalInstallments: number }) {
+  const response = await fetch(`${API_URL}/credit-cards/invoice-items/${id}`, {
+    method: 'PUT',
+    headers: await getAuthHeaders(),
+    body: JSON.stringify(data),
+  });
+  if (!response.ok) throw new Error('Não foi possível atualizar o item');
   return response.json();
 }
 
@@ -361,5 +377,43 @@ export async function updateGoal(id: number, data: { description?: string; targe
 export async function deleteGoal(id: number) {
   const response = await fetch(`${API_URL}/goals/${id}`, { method: 'DELETE', headers: await getAuthHeaders() });
   if (!response.ok) throw new Error('Não foi possível excluir a meta');
+  return response.json();
+}
+
+export async function getBenefitWallets() {
+  const response = await fetch(`${API_URL}/benefit-wallets`, { method: 'GET', headers: await getAuthHeaders() });
+  if (!response.ok) throw new Error('Não foi possível buscar as carteiras de benefício');
+  return response.json();
+}
+
+export async function createBenefitWallet(type: string) {
+  const response = await fetch(`${API_URL}/benefit-wallets`, {
+    method: 'POST',
+    headers: await getAuthHeaders(),
+    body: JSON.stringify({ type }),
+  });
+  if (!response.ok) {
+    const data = await response.json().catch(() => null);
+    throw new Error(data?.error || 'Não foi possível criar a carteira');
+  }
+  return response.json();
+}
+
+export async function topUpBenefitWallet(id: number, amount: number) {
+  const response = await fetch(`${API_URL}/benefit-wallets/${id}/topup`, {
+    method: 'POST',
+    headers: await getAuthHeaders(),
+    body: JSON.stringify({ amount }),
+  });
+  if (!response.ok) {
+    const data = await response.json().catch(() => null);
+    throw new Error(data?.error || 'Não foi possível adicionar saldo');
+  }
+  return response.json();
+}
+
+export async function deleteBenefitWallet(id: number) {
+  const response = await fetch(`${API_URL}/benefit-wallets/${id}`, { method: 'DELETE', headers: await getAuthHeaders() });
+  if (!response.ok) throw new Error('Não foi possível excluir a carteira');
   return response.json();
 }
