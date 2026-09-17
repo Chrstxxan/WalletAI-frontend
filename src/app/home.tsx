@@ -5,6 +5,7 @@ import { useRouter, useFocusEffect } from 'expo-router';
 import { BarChart } from 'react-native-gifted-charts';
 import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
+import * as SecureStore from 'expo-secure-store';
 import { getDashboard, getMe, getMonthlyFixedExpenseRecords, getMonthlyIncomeRecords, getMonthSummary, getBenefitWallets } from '@/services/api';
 import { GlassCard } from '@/components/GlassCard';
 import { IsometricPieChart } from '@/components/IsometricPieChart';
@@ -95,6 +96,14 @@ export default function HomeScreen() {
             setBenefitWallets([]);
           }
           setSelectedBarra(null);
+        } catch (error: any) {
+          if (error?.isAuthError) {
+            // token válido mas usuário não existe mais (ex: banco resetado) — desloga em vez de travar a tela
+            await SecureStore.deleteItemAsync('token');
+            router.replace('/login');
+            return;
+          }
+          Alert.alert('Erro de conexão', 'Não foi possível carregar seus dados. Verifique sua conexão e tente novamente.');
         } finally {
           hasLoadedOnce.current = true;
           setLoading(false);

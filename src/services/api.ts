@@ -174,6 +174,11 @@ export async function clearChatHistory() {
 
 export async function getMe() {
   const response = await fetch(`${API_URL}/auth/me`, { method: 'GET', headers: await getAuthHeaders() });
+  if (response.status === 401) {
+    const error: any = new Error('Sessão inválida');
+    error.isAuthError = true;
+    throw error;
+  }
   if (!response.ok) throw new Error('Não foi possível buscar os dados do usuário');
   return response.json();
 }

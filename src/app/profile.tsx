@@ -33,6 +33,14 @@ export default function ProfileScreen() {
         setEmail(user.email || '');
         setLockEnabled(lockOn);
         setLockAvailable(lockPossivel);
+      } catch (error: any) {
+        if (error?.isAuthError) {
+          // token válido mas usuário não existe mais (ex: banco resetado) — desloga em vez de travar a tela
+          await SecureStore.deleteItemAsync('token');
+          router.replace('/login');
+          return;
+        }
+        Alert.alert('Erro de conexão', 'Não foi possível carregar seus dados. Verifique sua conexão e tente novamente.');
       } finally {
         setLoadingInitial(false);
       }
