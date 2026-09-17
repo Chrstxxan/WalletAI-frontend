@@ -1,6 +1,6 @@
 import * as SecureStore from 'expo-secure-store';
 
-const API_URL = 'http://192.168.15.53:3000';
+const API_URL = 'https://walletai-backend-production-261d.up.railway.app';
 
 export async function login(email: string, password: string) {
   const response = await fetch(`${API_URL}/auth/login`, {
