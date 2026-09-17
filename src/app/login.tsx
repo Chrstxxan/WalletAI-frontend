@@ -6,6 +6,7 @@ import * as SecureStore from 'expo-secure-store';
 import { login } from '@/services/api';
 import { GlassCard } from '@/components/GlassCard';
 import { Colors } from '@/constants/colors';
+import { resolvePostAuthRoute } from '@/utils/postAuthRoute';
 
 export default function LoginScreen() {
   const [email, setEmail] = useState('');
@@ -18,7 +19,8 @@ export default function LoginScreen() {
     async function checkSession() {
       const token = await SecureStore.getItemAsync('token');
       if (token) {
-        router.replace('/home');
+        const dest = await resolvePostAuthRoute();
+        router.replace(dest as any);
       } else {
         setCheckingSession(false);
       }
@@ -31,7 +33,8 @@ export default function LoginScreen() {
     try {
       const data = await login(email, password);
       await SecureStore.setItemAsync('token', data.token);
-      router.replace('/home');
+      const dest = await resolvePostAuthRoute();
+      router.replace(dest as any);
     } catch (error) {
       if (error instanceof TypeError) {
         Alert.alert('Erro de conexão', 'Não foi possível conectar ao servidor. Verifique se o backend está rodando e se o celular está na mesma rede Wi-Fi.');

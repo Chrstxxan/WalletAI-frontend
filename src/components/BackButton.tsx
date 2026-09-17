@@ -6,6 +6,17 @@ import { Colors } from '@/constants/colors';
 export function BackButton() {
   const router = useRouter();
 
+  function handlePress() {
+    // telas alcançadas por uma cadeia de router.replace (ex: login -> onboarding ->
+    // financial-profile, tudo replace) não deixam nada empilhado pra voltar — cair
+    // na home garante que sempre tem pra onde ir, em vez do erro "GO_BACK not handled"
+    if (router.canGoBack()) {
+      router.back();
+    } else {
+      router.replace('/home');
+    }
+  }
+
   return (
     <View style={styles.wrapper} pointerEvents="box-none">
       <IconButton
@@ -13,7 +24,7 @@ export function BackButton() {
         size={26}
         iconColor={Colors.textPrimary}
         style={styles.button}
-        onPress={() => router.back()}
+        onPress={handlePress}
       />
     </View>
   );

@@ -16,7 +16,7 @@ const theme = {
   },
 };
 
-const ROUTES_SEM_TRAVA = ['login', 'register', 'forgot-password', 'app-lock', undefined];
+const ROUTES_SEM_TRAVA = ['login', 'register', 'forgot-password', 'app-lock', 'onboarding', undefined];
 
 function useAppLockGate() {
   const router = useRouter();

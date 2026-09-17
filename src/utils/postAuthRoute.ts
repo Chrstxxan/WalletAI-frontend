@@ -8,6 +8,12 @@ export type PostAuthRoute =
 export async function resolvePostAuthRoute(): Promise<PostAuthRoute> {
   try {
     const status = await getMonthStatus();
+    if (!status.onboardingCompleted) {
+      // tutorial de primeiro acesso tem prioridade sobre tudo — nem faz sentido
+      // mostrar fechamento de mês ou voltar pra uma tela antiga antes disso
+      consumePendingReturnRoute();
+      return { pathname: '/onboarding' };
+    }
     if (status.needsClosing) {
       // fechamento de mês tem prioridade sobre voltar pra tela anterior
       consumePendingReturnRoute();

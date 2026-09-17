@@ -191,6 +191,10 @@ export default function ProfileScreen() {
           Benefícios de trabalho
         </Button>
 
+        <Button mode="text" onPress={() => router.push({ pathname: '/onboarding', params: { again: '1' } } as any)} textColor={Colors.textSecondary} style={styles.linkButton}>
+          Ver tutorial novamente
+        </Button>
+
         <Button mode="text" onPress={confirmLogout} textColor={Colors.textSecondary} style={styles.logoutButton}>
           Sair da conta
         </Button>

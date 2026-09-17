@@ -178,6 +178,12 @@ export async function getMe() {
   return response.json();
 }
 
+export async function completeOnboarding() {
+  const response = await fetch(`${API_URL}/auth/complete-onboarding`, { method: 'POST', headers: await getAuthHeaders() });
+  if (!response.ok) throw new Error('Não foi possível concluir o tutorial');
+  return response.json();
+}
+
 export async function updateMe(name: string, email: string) {
   const response = await fetch(`${API_URL}/auth/me`, {
     method: 'PUT',
