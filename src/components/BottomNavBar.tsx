@@ -2,6 +2,7 @@ import { useRef } from 'react';
 import { View, StyleSheet, Pressable, Animated } from 'react-native';
 import { Text, Icon } from 'react-native-paper';
 import { useRouter, useSegments } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Colors } from '@/constants/colors';
 
 const ITEMS = [
@@ -67,9 +68,10 @@ function NavBarButton({ item, active }: { item: NavItem; active: boolean }) {
 export function BottomNavBar() {
   const segments = useSegments();
   const currentRoute = `/${segments[0] ?? ''}`;
+  const insets = useSafeAreaInsets();
 
   return (
-    <View style={styles.wrapper} pointerEvents="box-none">
+    <View style={[styles.wrapper, { bottom: insets.bottom + 12 }]} pointerEvents="box-none">
       <View style={styles.bar}>
         {ITEMS.map((item) => (
           <NavBarButton key={item.key} item={item} active={item.route === currentRoute} />
@@ -80,7 +82,7 @@ export function BottomNavBar() {
 }
 
 const styles = StyleSheet.create({
-  wrapper: { position: 'absolute', left: 16, right: 16, bottom: 0, paddingBottom: 18 },
+  wrapper: { position: 'absolute', left: 16, right: 16 },
   bar: {
     flexDirection: 'row',
     alignItems: 'flex-end',

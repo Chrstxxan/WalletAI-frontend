@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react';
 import { AppState, AppStateStatus } from 'react-native';
 import { Stack, useRouter, useSegments, usePathname } from 'expo-router';
 import { PaperProvider, MD3DarkTheme } from 'react-native-paper';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 import * as SecureStore from 'expo-secure-store';
 import { Colors } from '@/constants/colors';
 import { isAppLockEnabled, isDeviceLockAvailable, isAppLockGateSuppressed, setPendingReturnRoute } from '@/utils/appLock';
@@ -59,8 +60,10 @@ export default function RootLayout() {
   useAppLockGate();
 
   return (
-    <PaperProvider theme={theme}>
-      <Stack screenOptions={{ headerShown: false, animation: 'none' }} />
-    </PaperProvider>
+    <SafeAreaProvider>
+      <PaperProvider theme={theme}>
+        <Stack screenOptions={{ headerShown: false, animation: 'none' }} />
+      </PaperProvider>
+    </SafeAreaProvider>
   );
 }
