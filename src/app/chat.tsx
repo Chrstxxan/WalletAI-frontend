@@ -4,6 +4,7 @@ import { Text, TextInput, IconButton, ActivityIndicator } from 'react-native-pap
 import { useRouter } from 'expo-router';
 import { sendChatMessage, getChatHistory, clearChatHistory } from '@/services/api';
 import { Colors } from '@/constants/colors';
+import { useBottomPadding } from '@/utils/useBottomPadding';
 
 type Message = { id: string; role: 'user' | 'assistant'; content: string };
 
@@ -41,6 +42,7 @@ const GREETING: Message = {
 };
 
 export default function ChatScreen() {
+  const bottomPadding = useBottomPadding(16);
   const [messages, setMessages] = useState<Message[]>([GREETING]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
@@ -128,7 +130,7 @@ export default function ChatScreen() {
 
       {loading && <ActivityIndicator color={Colors.primary} style={{ marginBottom: 8 }} />}
 
-      <View style={styles.inputRow}>
+      <View style={[styles.inputRow, { paddingBottom: bottomPadding }]}>
         <TextInput
           value={input}
           onChangeText={setInput}
