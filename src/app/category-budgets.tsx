@@ -6,6 +6,7 @@ import { getCategoryBudgets, updateCategoryBudgets } from '@/services/api';
 import { GlassCard } from '@/components/GlassCard';
 import { BackButton } from '@/components/BackButton';
 import { Colors } from '@/constants/colors';
+import { useBottomPadding } from '@/utils/useBottomPadding';
 
 type BudgetRow = { categoria: string; limite: string; gasto: number; percentualUsado: number };
 
@@ -14,6 +15,7 @@ const now = new Date();
 const MES_ATUAL_LABEL = `${MESES[now.getMonth()]} de ${now.getFullYear()}`;
 
 export default function CategoryBudgetsScreen() {
+  const bottomPadding = useBottomPadding(40);
   const [rows, setRows] = useState<BudgetRow[]>([]);
   const [loading, setLoading] = useState(false);
   const [loadingInitial, setLoadingInitial] = useState(true);
@@ -72,7 +74,7 @@ export default function CategoryBudgetsScreen() {
       <View style={[styles.blob, styles.blobTop]} />
       <BackButton />
 
-      <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag">
+      <ScrollView contentContainerStyle={[styles.container, { paddingBottom: bottomPadding }]} keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag">
         <Text variant="headlineLarge" style={styles.title}>Orçamento por categoria</Text>
         <View style={styles.monthBadge}>
           <Text style={styles.monthBadgeText}>Sempre reflete {MES_ATUAL_LABEL} (mês atual)</Text>

@@ -9,6 +9,7 @@ import {
 import { GlassCard } from '@/components/GlassCard';
 import { BackButton } from '@/components/BackButton';
 import { Colors } from '@/constants/colors';
+import { useBottomPadding } from '@/utils/useBottomPadding';
 
 type ExpenseRecord = { id: number; description: string; amount: number; isPaid: boolean };
 type IncomeRecordType = { id: number; description: string; amount: number; isReceived: boolean };
@@ -16,6 +17,7 @@ type IncomeRecordType = { id: number; description: string; amount: number; isRec
 const MESES = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
 
 export default function MonthlyReviewScreen() {
+  const bottomPadding = useBottomPadding(40);
   const [expenseRecords, setExpenseRecords] = useState<ExpenseRecord[]>([]);
   const [incomeRecords, setIncomeRecords] = useState<IncomeRecordType[]>([]);
   const [loading, setLoading] = useState(true);
@@ -74,7 +76,7 @@ export default function MonthlyReviewScreen() {
     <View style={styles.screen}>
       <View style={[styles.blob, styles.blobTop]} />
       <BackButton />
-      <ScrollView contentContainerStyle={styles.container}>
+      <ScrollView contentContainerStyle={[styles.container, { paddingBottom: bottomPadding }]}>
         <Text variant="headlineLarge" style={styles.title}>{mesAtual}</Text>
         <Text style={styles.subtitle}>Marque o que já foi pago ou recebido</Text>
 

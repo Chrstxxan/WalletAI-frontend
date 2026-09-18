@@ -6,6 +6,7 @@ import { getTransactions, deleteTransaction } from '@/services/api';
 import { GlassCard } from '@/components/GlassCard';
 import { BottomNavBar } from '@/components/BottomNavBar';
 import { Colors } from '@/constants/colors';
+import { useBottomPadding } from '@/utils/useBottomPadding';
 
 type TypeFilter = 'todas' | 'despesa' | 'receita';
 
@@ -26,6 +27,7 @@ const CURRENT_MONTH = now.getMonth() + 1;
 const CURRENT_YEAR = now.getFullYear();
 
 export default function TransactionsScreen() {
+  const bottomPadding = useBottomPadding(130);
   const params = useLocalSearchParams<{ month?: string; year?: string }>();
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
@@ -107,7 +109,7 @@ export default function TransactionsScreen() {
     <View style={styles.screen}>
       <View style={[styles.blob, styles.blobTop]} />
 
-      <View style={styles.container}>
+      <View style={[styles.container, { paddingBottom: bottomPadding }]}>
         <Text variant="headlineLarge" style={styles.title}>Transações</Text>
 
         <View style={styles.monthNav}>

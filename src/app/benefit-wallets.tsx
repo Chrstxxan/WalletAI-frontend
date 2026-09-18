@@ -6,12 +6,14 @@ import { getBenefitWallets, createBenefitWallet, topUpBenefitWallet, deleteBenef
 import { GlassCard } from '@/components/GlassCard';
 import { BackButton } from '@/components/BackButton';
 import { Colors } from '@/constants/colors';
+import { useBottomPadding } from '@/utils/useBottomPadding';
 
 type Wallet = { id: number; type: string; balance: number; gastoNoMes: number };
 
 const TIPOS = ['VR', 'VA', 'Combustível'];
 
 export default function BenefitWalletsScreen() {
+  const bottomPadding = useBottomPadding(60);
   const [wallets, setWallets] = useState<Wallet[]>([]);
   const [loading, setLoading] = useState(true);
   const [creatingType, setCreatingType] = useState<string | null>(null);
@@ -89,7 +91,7 @@ export default function BenefitWalletsScreen() {
       <View style={[styles.blob, styles.blobTop]} />
       <BackButton />
 
-      <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag">
+      <ScrollView contentContainerStyle={[styles.container, { paddingBottom: bottomPadding }]} keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag">
         <Text variant="headlineLarge" style={styles.title}>Benefícios de trabalho</Text>
         <Text style={styles.subtitle}>VR, VA e cartão combustível — a IA confere se a transação faz sentido pra cada tipo.</Text>
 

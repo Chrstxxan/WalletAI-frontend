@@ -6,10 +6,12 @@ import { createTransaction, updateTransaction, getBenefitWallets } from '@/servi
 import { GlassCard } from '@/components/GlassCard';
 import { BackButton } from '@/components/BackButton';
 import { Colors } from '@/constants/colors';
+import { useBottomPadding } from '@/utils/useBottomPadding';
 
 type BenefitWallet = { id: number; type: string };
 
 export default function AddTransactionScreen() {
+  const bottomPadding = useBottomPadding(24);
   const params = useLocalSearchParams<{ id?: string; amount?: string; type?: string; description?: string; benefitWalletId?: string }>();
   const isEditing = !!params.id;
 
@@ -61,7 +63,7 @@ export default function AddTransactionScreen() {
       <BackButton />
 
       <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
-        <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag">
+        <ScrollView contentContainerStyle={[styles.container, { paddingBottom: bottomPadding }]} keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag">
           <Text variant="headlineLarge" style={styles.title}>{isEditing ? 'Editar transação' : 'Nova transação'}</Text>
           <Text variant="bodyMedium" style={styles.subtitle}>A categoria é sugerida automaticamente pela IA</Text>
 

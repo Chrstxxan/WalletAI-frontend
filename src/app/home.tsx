@@ -12,6 +12,7 @@ import { IsometricPieChart } from '@/components/IsometricPieChart';
 import { BottomNavBar } from '@/components/BottomNavBar';
 import { Colors } from '@/constants/colors';
 import { buildMonthlyReportHtml } from '@/utils/pdfReport';
+import { useBottomPadding } from '@/utils/useBottomPadding';
 
 type DashboardData = {
   profile: { savingsGoal: number } | null;
@@ -41,6 +42,7 @@ const CURRENT_YEAR = now.getFullYear();
 let hasShownReviewReminderThisSession = false;
 
 export default function HomeScreen() {
+  const bottomPadding = useBottomPadding(130);
   const [data, setData] = useState<DashboardData | null>(null);
   const [userName, setUserName] = useState('');
   const [loading, setLoading] = useState(true);
@@ -195,7 +197,7 @@ export default function HomeScreen() {
     <View style={styles.screen}>
       <View style={[styles.blob, styles.blobTop]} />
 
-      <ScrollView contentContainerStyle={styles.container}>
+      <ScrollView contentContainerStyle={[styles.container, { paddingBottom: bottomPadding }]}>
         <Text style={styles.title} numberOfLines={1} adjustsFontSizeToFit>
           Bem-vindo(a){userName ? `, ${userName}` : ''}!
         </Text>

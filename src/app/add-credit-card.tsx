@@ -6,8 +6,10 @@ import { createCreditCard } from '@/services/api';
 import { GlassCard } from '@/components/GlassCard';
 import { BackButton } from '@/components/BackButton';
 import { Colors } from '@/constants/colors';
+import { useBottomPadding } from '@/utils/useBottomPadding';
 
 export default function AddCreditCardScreen() {
+  const bottomPadding = useBottomPadding(24);
   const [name, setName] = useState('');
   const [limit, setLimit] = useState('');
   const [loading, setLoading] = useState(false);
@@ -39,7 +41,7 @@ export default function AddCreditCardScreen() {
       <View style={[styles.blob, styles.blobTop]} />
       <BackButton />
       <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
-        <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag">
+        <ScrollView contentContainerStyle={[styles.container, { paddingBottom: bottomPadding }]} keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag">
         <Text variant="headlineLarge" style={styles.title}>Novo cartão</Text>
 
         <GlassCard style={styles.card}>

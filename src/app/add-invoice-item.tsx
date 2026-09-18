@@ -6,10 +6,12 @@ import { getCreditCards, addInvoiceItem } from '@/services/api';
 import { GlassCard } from '@/components/GlassCard';
 import { BackButton } from '@/components/BackButton';
 import { Colors } from '@/constants/colors';
+import { useBottomPadding } from '@/utils/useBottomPadding';
 
 type Card = { id: number; name: string };
 
 export default function AddInvoiceItemScreen() {
+  const bottomPadding = useBottomPadding(40);
   const [cards, setCards] = useState<Card[]>([]);
   const [selectedCardId, setSelectedCardId] = useState<number | null>(null);
   const [month, setMonth] = useState(String(new Date().getMonth() + 1));
@@ -76,7 +78,7 @@ export default function AddInvoiceItemScreen() {
     <View style={styles.screen}>
       <View style={[styles.blob, styles.blobTop]} />
       <BackButton />
-      <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag">
+      <ScrollView contentContainerStyle={[styles.container, { paddingBottom: bottomPadding }]} keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag">
         <Text variant="headlineLarge" style={styles.title}>Lançar item na fatura</Text>
         <Text style={styles.subtitle}>Copie exatamente como está na fatura do seu banco</Text>
 

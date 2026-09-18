@@ -11,6 +11,7 @@ import {
 import { GlassCard } from '@/components/GlassCard';
 import { BackButton } from '@/components/BackButton';
 import { Colors } from '@/constants/colors';
+import { useBottomPadding } from '@/utils/useBottomPadding';
 
 type IncomeRow = { id?: number; description: string; amount: string; recorrente: boolean; month: string; year: string };
 type ExpenseRow = { id?: number; description: string; amount: string; isCreditCard: boolean; cardId: number | null; recorrente: boolean; month: string; year: string };
@@ -27,6 +28,7 @@ function emptyExpenseRow(): ExpenseRow {
 }
 
 export default function FinancialProfileScreen() {
+  const bottomPadding = useBottomPadding(40);
   const [incomeRows, setIncomeRows] = useState<IncomeRow[]>([emptyIncomeRow()]);
   const [expenseRows, setExpenseRows] = useState<ExpenseRow[]>([emptyExpenseRow()]);
   const [creditCards, setCreditCards] = useState<CreditCardOption[]>([]);
@@ -167,7 +169,7 @@ export default function FinancialProfileScreen() {
       <BackButton />
 
       <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
-      <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag">
+      <ScrollView contentContainerStyle={[styles.container, { paddingBottom: bottomPadding }]} keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag">
         <Text variant="headlineLarge" style={styles.title}>Meus dados financeiros</Text>
         <Text variant="bodyMedium" style={styles.subtitle}>Usados para calcular quanto você pode gastar</Text>
 

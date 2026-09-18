@@ -6,6 +6,7 @@ import { getGoals, createGoal, updateGoal, deleteGoal } from '@/services/api';
 import { GlassCard } from '@/components/GlassCard';
 import { BottomNavBar } from '@/components/BottomNavBar';
 import { Colors } from '@/constants/colors';
+import { useBottomPadding } from '@/utils/useBottomPadding';
 
 type Goal = {
   id: number;
@@ -17,6 +18,7 @@ type Goal = {
 };
 
 export default function GoalsScreen() {
+  const bottomPadding = useBottomPadding(130);
   const [goals, setGoals] = useState<Goal[]>([]);
   const [loading, setLoading] = useState(true);
   const [newDescription, setNewDescription] = useState('');
@@ -111,7 +113,7 @@ export default function GoalsScreen() {
     <View style={styles.screen}>
       <View style={[styles.blob, styles.blobTop]} />
 
-      <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag">
+      <ScrollView contentContainerStyle={[styles.container, { paddingBottom: bottomPadding }]} keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag">
         <Text variant="headlineLarge" style={styles.title}>Metas financeiras</Text>
         <Text variant="bodyMedium" style={styles.subtitle}>Acompanhe o progresso dos seus objetivos</Text>
 

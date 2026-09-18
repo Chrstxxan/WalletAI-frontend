@@ -5,6 +5,7 @@ import { useRouter, useLocalSearchParams } from 'expo-router';
 import { getMonthSummary, acknowledgeMonth } from '@/services/api';
 import { GlassCard } from '@/components/GlassCard';
 import { Colors } from '@/constants/colors';
+import { useBottomPadding } from '@/utils/useBottomPadding';
 
 type MonthSummary = {
   monthlyIncome: number;

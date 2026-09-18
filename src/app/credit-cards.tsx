@@ -6,6 +6,7 @@ import { getCreditCards, getCreditCardSummary, deleteCreditCard, deleteInvoiceIt
 import { GlassCard } from '@/components/GlassCard';
 import { BottomNavBar } from '@/components/BottomNavBar';
 import { Colors } from '@/constants/colors';
+import { useBottomPadding } from '@/utils/useBottomPadding';
 
 type Card = { id: number; name: string; limit: number; totalFaturaAtual: number; percentualDoLimite: number };
 type Summary = {
@@ -15,6 +16,7 @@ type Summary = {
 };
 
 export default function CreditCardsScreen() {
+  const bottomPadding = useBottomPadding(130);
   const [cards, setCards] = useState<Card[]>([]);
   const [summary, setSummary] = useState<Summary | null>(null);
   const [loading, setLoading] = useState(true);
@@ -98,7 +100,7 @@ export default function CreditCardsScreen() {
     <View style={styles.screen}>
       <View style={[styles.blob, styles.blobTop]} />
 
-      <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag">
+      <ScrollView contentContainerStyle={[styles.container, { paddingBottom: bottomPadding }]} keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag">
         <Text variant="headlineLarge" style={styles.title}>Cartões de crédito</Text>
 
         <GlassCard style={styles.card}>

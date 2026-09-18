@@ -7,8 +7,10 @@ import { login } from '@/services/api';
 import { GlassCard } from '@/components/GlassCard';
 import { Colors } from '@/constants/colors';
 import { resolvePostAuthRoute } from '@/utils/postAuthRoute';
+import { useBottomPadding } from '@/utils/useBottomPadding';
 
 export default function LoginScreen() {
+  const bottomPadding = useBottomPadding(24);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -56,7 +58,7 @@ export default function LoginScreen() {
       <View style={[styles.blob, styles.blobBottom]} />
 
       <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
-        <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag">
+        <ScrollView contentContainerStyle={[styles.container, { paddingBottom: bottomPadding }]} keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag">
         <Text variant="headlineLarge" style={styles.title}>WalletAI</Text>
         <Text variant="bodyMedium" style={styles.subtitle}>Gestão financeira inteligente</Text>
 

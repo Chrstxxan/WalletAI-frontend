@@ -8,8 +8,10 @@ import { GlassCard } from '@/components/GlassCard';
 import { BottomNavBar } from '@/components/BottomNavBar';
 import { Colors } from '@/constants/colors';
 import { isAppLockEnabled, isDeviceLockAvailable, setAppLockEnabled, unlockWithDeviceAuth } from '@/utils/appLock';
+import { useBottomPadding } from '@/utils/useBottomPadding';
 
 export default function ProfileScreen() {
+  const bottomPadding = useBottomPadding(130);
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [newPassword, setNewPassword] = useState('');
@@ -120,7 +122,7 @@ export default function ProfileScreen() {
     <View style={styles.screen}>
       <View style={[styles.blob, styles.blobTop]} />
 
-      <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag">
+      <ScrollView contentContainerStyle={[styles.container, { paddingBottom: bottomPadding }]} keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag">
         <Text variant="headlineLarge" style={styles.title}>Minha conta</Text>
 
         <GlassCard style={styles.card}>

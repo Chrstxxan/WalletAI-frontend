@@ -6,6 +6,7 @@ import { getCardInvoices, deleteInvoiceItem, updateInvoiceItem } from '@/service
 import { GlassCard } from '@/components/GlassCard';
 import { BackButton } from '@/components/BackButton';
 import { Colors } from '@/constants/colors';
+import { useBottomPadding } from '@/utils/useBottomPadding';
 
 type InvoiceItem = { id: number; description: string; installmentAmount: number; currentInstallment: number; totalInstallments: number };
 type Invoice = { id: number; month: number; year: number; total: number; items: InvoiceItem[] };
@@ -13,6 +14,7 @@ type Invoice = { id: number; month: number; year: number; total: number; items: 
 const MESES = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
 
 export default function CardInvoicesScreen() {
+  const bottomPadding = useBottomPadding(40);
   const { cardId, cardName } = useLocalSearchParams<{ cardId: string; cardName: string }>();
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [loading, setLoading] = useState(true);
@@ -90,7 +92,7 @@ export default function CardInvoicesScreen() {
     <View style={styles.screen}>
       <View style={[styles.blob, styles.blobTop]} />
       <BackButton />
-      <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag">
+      <ScrollView contentContainerStyle={[styles.container, { paddingBottom: bottomPadding }]} keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag">
         <Text variant="headlineLarge" style={styles.title}>{cardName}</Text>
         <Text style={styles.subtitle}>Todas as faturas lançadas</Text>
 
