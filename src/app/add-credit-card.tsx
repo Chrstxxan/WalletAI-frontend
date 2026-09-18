@@ -38,7 +38,7 @@ export default function AddCreditCardScreen() {
     <View style={styles.screen}>
       <View style={[styles.blob, styles.blobTop]} />
       <BackButton />
-      <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+      <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
         <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag">
         <Text variant="headlineLarge" style={styles.title}>Novo cartão</Text>
 

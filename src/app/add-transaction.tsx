@@ -60,7 +60,7 @@ export default function AddTransactionScreen() {
       <View style={[styles.blob, styles.blobBottom]} />
       <BackButton />
 
-      <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+      <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
         <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag">
           <Text variant="headlineLarge" style={styles.title}>{isEditing ? 'Editar transação' : 'Nova transação'}</Text>
           <Text variant="bodyMedium" style={styles.subtitle}>A categoria é sugerida automaticamente pela IA</Text>
@@ -105,7 +105,7 @@ export default function AddTransactionScreen() {
                   onValueChange={setBenefitWalletId}
                   style={styles.segmented}
                   buttons={[
-                    { value: 'nenhum', label: 'Nenhum' },
+                    { value: 'nenhum', label: 'Débito/Crédito' },
                     ...wallets.map((w) => ({ value: String(w.id), label: w.type })),
                   ]}
                 />

@@ -97,7 +97,7 @@ export default function ChatScreen() {
   }
 
   return (
-    <KeyboardAvoidingView style={styles.screen} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+    <KeyboardAvoidingView style={styles.screen} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
       <View style={styles.header}>
         <IconButton icon="chevron-left" iconColor={Colors.textPrimary} size={26} onPress={() => router.back()} style={styles.backButton} />
         <Text style={styles.title} numberOfLines={1} adjustsFontSizeToFit>Wally</Text>
@@ -109,6 +109,7 @@ export default function ChatScreen() {
       ) : (
         <FlatList
           ref={listRef}
+          style={styles.messagesFlex}
           data={messages}
           keyExtractor={(item) => item.id}
           contentContainerStyle={styles.messagesList}
@@ -149,6 +150,7 @@ const styles = StyleSheet.create({
   header: { flexDirection: 'row', alignItems: 'center', paddingTop: 60, paddingHorizontal: 12, paddingBottom: 8 },
   backButton: { margin: 0 },
   title: { color: Colors.textPrimary, fontWeight: '700', flex: 1, fontSize: 20, textAlign: 'center' },
+  messagesFlex: { flex: 1 },
   messagesList: { paddingHorizontal: 16, paddingBottom: 16, gap: 10 },
   bubble: { maxWidth: '80%', padding: 14, borderRadius: 18 },
   userBubble: { alignSelf: 'flex-end', backgroundColor: Colors.primary, borderBottomRightRadius: 4 },

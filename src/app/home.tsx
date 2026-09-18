@@ -292,6 +292,11 @@ export default function HomeScreen() {
               </View>
             </>
           )}
+          {isCurrentMonth && benefitWallets.length > 0 && (
+            <Text style={styles.chartCaption}>
+              Não inclui gastos pagos com carteira de benefício (VR/VA/Combustível) — veja o card "Benefícios de trabalho" abaixo.
+            </Text>
+          )}
         </GlassCard>
 
         {isCurrentMonth && data.orcamentosPorCategoria.length > 0 && (
@@ -380,6 +385,11 @@ export default function HomeScreen() {
           {isCurrentMonth && !!data.profile?.savingsGoal && (
             <Text style={styles.chartCaption}>
               A diferença entre receitas e despesas aqui não desconta sua meta de economia (R$ {data.profile.savingsGoal.toFixed(2)}) — ela já está reservada no "Disponível para gastar" acima.
+            </Text>
+          )}
+          {isCurrentMonth && benefitWallets.length > 0 && (
+            <Text style={styles.chartCaption}>
+              Também não inclui gastos pagos com carteira de benefício (VR/VA/Combustível).
             </Text>
           )}
         </GlassCard>

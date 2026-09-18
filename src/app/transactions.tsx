@@ -152,6 +152,7 @@ export default function TransactionsScreen() {
           <ActivityIndicator color={Colors.primary} style={{ marginTop: 40 }} />
         ) : (
           <FlatList
+            style={styles.list}
             keyboardShouldPersistTaps="handled"
             keyboardDismissMode="on-drag"
             data={filteredTransactions}
@@ -227,7 +228,8 @@ const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: Colors.background, overflow: 'hidden' },
   blob: { position: 'absolute', width: 300, height: 300, borderRadius: 150, backgroundColor: Colors.primary, opacity: 0.2 },
   blobTop: { top: -100, right: -80 },
-  container: { flex: 1, paddingHorizontal: 24, paddingTop: 60, paddingBottom: 100 },
+  container: { flex: 1, paddingHorizontal: 24, paddingTop: 60, paddingBottom: 130 },
+  list: { flex: 1 },
   title: { color: Colors.textPrimary, fontWeight: '700', marginBottom: 4, textAlign: 'center' },
   monthNav: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', marginBottom: 12 },
   monthNavLabel: { color: Colors.textPrimary, fontSize: 15, fontWeight: '700', minWidth: 140, textAlign: 'center' },

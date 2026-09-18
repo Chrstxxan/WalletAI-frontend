@@ -41,7 +41,7 @@ export default function RegisterScreen() {
       <View style={[styles.blob, styles.blobBottom]} />
       <BackButton />
 
-      <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+      <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
         <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag">
         <Text variant="headlineLarge" style={styles.title}>Criar conta</Text>
         <Text variant="bodyMedium" style={styles.subtitle}>Comece a organizar suas finanças</Text>

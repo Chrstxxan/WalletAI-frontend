@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { View, StyleSheet, Alert, ScrollView } from 'react-native';
+import { View, StyleSheet, Alert, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
 import { TextInput, Button, Text, IconButton, Switch, Chip, ActivityIndicator } from 'react-native-paper';
 import { useRouter } from 'expo-router';
 import {
@@ -166,6 +166,7 @@ export default function FinancialProfileScreen() {
       <View style={[styles.blob, styles.blobTop]} />
       <BackButton />
 
+      <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
       <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag">
         <Text variant="headlineLarge" style={styles.title}>Meus dados financeiros</Text>
         <Text variant="bodyMedium" style={styles.subtitle}>Usados para calcular quanto você pode gastar</Text>
@@ -392,12 +393,14 @@ export default function FinancialProfileScreen() {
           </Button>
         </GlassCard>
       </ScrollView>
+      </KeyboardAvoidingView>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: Colors.background },
+  flex: { flex: 1 },
   blob: { position: 'absolute', width: 300, height: 300, borderRadius: 150, backgroundColor: Colors.primary, opacity: 0.2 },
   blobTop: { top: -100, right: -80 },
   container: { padding: 24, paddingTop: 60, paddingBottom: 40 },
